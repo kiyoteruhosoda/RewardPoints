@@ -134,8 +134,9 @@ class _EntryCard extends StatelessWidget {
     final pointPrefix = isAddition ? '+' : '-';
     final subtitle = isAddition
         ? '${AppStrings.pointReason}: ${entry.reason ?? ''}'
-        : '${AppStrings.pointApplication}: ${entry.application ?? ''}'
-            '${entry.tag != null ? ' · ${AppStrings.pointTag}: ${entry.tag}' : ''}';
+        : entry.tag != null
+            ? '${AppStrings.pointApplication}: ${entry.application ?? ''} · ${AppStrings.pointTag}: ${entry.tag}'
+            : '${AppStrings.pointApplication}: ${entry.application ?? ''}';
 
     return AppCard(
       child: Row(

@@ -69,5 +69,5 @@ final class ImportDataUseCase {
 final class FileNotFoundException implements Exception {
   const FileNotFoundException();
   @override
-  String toString() => 'FileNotFoundException: export file not found';
+  String toString() => 'FileNotFoundException: import file not found';
 }
