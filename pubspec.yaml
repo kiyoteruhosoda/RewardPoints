@@ -1,0 +1,67 @@
+name: flutterbase
+description: デジタル庁デザインシステムを使ったベースFlutterアプリ
+publish_to: "none"
+version: 1.1.7+57
+
+environment:
+  sdk: ">=3.2.0 <4.0.0"
+  flutter: ">=3.16.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+
+  # Navigation
+  go_router: ^13.0.0
+
+  # State management
+  flutter_riverpod: ^2.5.1
+  riverpod_annotation: ^2.3.5
+
+  # DI
+  get_it: ^7.7.0
+
+  # SQLite
+  sqflite: ^2.3.3
+  path: ^1.9.0
+
+  # Package info
+  package_info_plus: ^8.0.0
+
+  # URL launcher (for licenses)
+  url_launcher: ^6.3.0
+
+  # Shared preferences
+  shared_preferences: ^2.3.0
+
+  # Logging
+  logger: ^2.4.0
+  path_provider: ^2.1.0
+
+  # Equatable (value objects)
+  equatable: ^2.0.5
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  integration_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+  build_runner: ^2.4.11
+  riverpod_generator: ^2.4.3
+  mockito: ^5.4.4
+  sqflite_common_ffi: ^2.3.3
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/
+  fonts:
+    - family: NotoSansJP
+      fonts:
+        - asset: assets/fonts/NotoSansJP-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/NotoSansJP-Bold.ttf
+          weight: 700

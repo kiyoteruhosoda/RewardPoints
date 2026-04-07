@@ -1,0 +1,398 @@
+# Azure DevOps CI/CD Pipeline for Flutter
+# デジタル庁デザインシステム準拠 FlutterBase
+
+trigger:
+  branches:
+    include:
+      - main
+      - master
+      - develop
+      - feature/*
+      - fix/*
+  paths:
+    exclude:
+      - '*.md'
+      - docs/**
+      - .claude/**
+
+pr:
+  branches:
+    include:
+      - main
+      - master
+      - develop
+
+variables:
+  - name: FLUTTER_VERSION
+    value: '3.19.0'
+  - name: JAVA_VERSION
+    value: '17'
+  - name: ANDROID_BUILD_TOOLS_VERSION
+    value: '34.0.0'
+  - name: ANDROID_COMPILE_SDK_VERSION
+    value: '34'
+
+stages:
+  # ─── Stage 1: Analyze & Test ────────────────────────────────────────
+  - stage: Analyze
+    displayName: 'Analyze & Test'
+    jobs:
+      - job: Flutter_Analyze
+        displayName: 'Flutter Analyze & Test'
+        pool:
+          vmImage: 'ubuntu-latest'
+        steps:
+          - checkout: self
+            fetchDepth: 0
+
+          - task: JavaToolInstaller@0
+            displayName: 'Install Java $(JAVA_VERSION)'
+            inputs:
+              versionSpec: '$(JAVA_VERSION)'
+              jdkArchitectureOption: x64
+              jdkSourceOption: PreInstalled
+
+          - script: |
+              # Flutter SDKのインストール
+              git clone https://github.com/flutter/flutter.git \
+                --depth 1 \
+                --branch stable \
+                $HOME/flutter
+              echo "##vso[task.prependpath]$HOME/flutter/bin"
+            displayName: 'Install Flutter $(FLUTTER_VERSION)'
+
+          - script: flutter --version
+            displayName: 'Flutter Version Check'
+
+          - script: flutter pub get
+            displayName: 'Install Dependencies'
+
+          - script: dart format --output=none --set-exit-if-changed lib/ test/
+            displayName: 'Check Dart Format'
+
+          - script: flutter analyze --fatal-infos --fatal-warnings
+            displayName: 'Flutter Analyze'
+
+          - script: flutter test --coverage
+            displayName: 'Run Tests'
+
+          - task: PublishTestResults@2
+            displayName: 'Publish Test Results'
+            inputs:
+              testResultsFormat: 'JUnit'
+              testResultsFiles: '**/test-results/*.xml'
+              failTaskOnFailedTests: true
+            condition: always()
+
+          - task: PublishCodeCoverageResults@1
+            displayName: 'Publish Coverage'
+            inputs:
+              codeCoverageTool: Cobertura
+              summaryFileLocation: coverage/lcov.info
+            condition: succeededOrFailed()
+
+  # ─── Stage 2: Build Android ─────────────────────────────────────────
+  - stage: Build_Android
+    displayName: 'Build Android'
+    dependsOn: Analyze
+    condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
+    jobs:
+      - job: Android_Debug
+        displayName: 'Android Debug Build'
+        pool:
+          vmImage: 'ubuntu-latest'
+        steps:
+          - checkout: self
+            fetchDepth: 0
+
+          - task: JavaToolInstaller@0
+            displayName: 'Install Java $(JAVA_VERSION)'
+            inputs:
+              versionSpec: '$(JAVA_VERSION)'
+              jdkArchitectureOption: x64
+              jdkSourceOption: PreInstalled
+
+          - script: |
+              git clone https://github.com/flutter/flutter.git \
+                --depth 1 \
+                --branch stable \
+                $HOME/flutter
+              echo "##vso[task.prependpath]$HOME/flutter/bin"
+            displayName: 'Install Flutter'
+
+          - script: flutter pub get
+            displayName: 'Install Dependencies'
+
+          - script: flutter build apk --debug
+            displayName: 'Build Android Debug APK'
+
+          - task: CopyFiles@2
+            displayName: 'Copy APK to Staging'
+            inputs:
+              sourceFolder: build/app/outputs/flutter-apk
+              contents: '*.apk'
+              targetFolder: $(Build.ArtifactStagingDirectory)/android
+
+          - task: PublishBuildArtifacts@1
+            displayName: 'Publish Android Debug APK'
+            inputs:
+              pathToPublish: $(Build.ArtifactStagingDirectory)/android
+              artifactName: android-debug
+
+      - job: Android_Release
+        displayName: 'Android Release Build'
+        pool:
+          vmImage: 'ubuntu-latest'
+        condition: |
+          and(
+            succeeded(),
+            or(
+              eq(variables['Build.SourceBranch'], 'refs/heads/main'),
+              eq(variables['Build.SourceBranch'], 'refs/heads/master')
+            )
+          )
+        steps:
+          - checkout: self
+            fetchDepth: 0
+
+          - task: JavaToolInstaller@0
+            displayName: 'Install Java $(JAVA_VERSION)'
+            inputs:
+              versionSpec: '$(JAVA_VERSION)'
+              jdkArchitectureOption: x64
+              jdkSourceOption: PreInstalled
+
+          - script: |
+              git clone https://github.com/flutter/flutter.git \
+                --depth 1 \
+                --branch stable \
+                $HOME/flutter
+              echo "##vso[task.prependpath]$HOME/flutter/bin"
+            displayName: 'Install Flutter'
+
+          - script: flutter pub get
+            displayName: 'Install Dependencies'
+
+          # Keystore を Azure Pipelines の SecureFiles から取得
+          - task: DownloadSecureFile@1
+            displayName: 'Download Keystore'
+            name: keystore
+            inputs:
+              secureFile: 'release.keystore'
+            condition: |
+              and(
+                succeeded(),
+                ne(variables['KEYSTORE_PASSWORD'], '')
+              )
+
+          - script: |
+              flutter build appbundle --release \
+                --dart-define=FLAVOR=production
+            displayName: 'Build Android Release AAB'
+            env:
+              KEYSTORE_PATH: $(keystore.secureFilePath)
+              KEYSTORE_PASSWORD: $(KEYSTORE_PASSWORD)
+              KEY_ALIAS: $(KEY_ALIAS)
+              KEY_PASSWORD: $(KEY_PASSWORD)
+
+          - task: CopyFiles@2
+            displayName: 'Copy AAB to Staging'
+            inputs:
+              sourceFolder: build/app/outputs/bundle/release
+              contents: '*.aab'
+              targetFolder: $(Build.ArtifactStagingDirectory)/android-release
+
+          - task: PublishBuildArtifacts@1
+            displayName: 'Publish Android Release AAB'
+            inputs:
+              pathToPublish: $(Build.ArtifactStagingDirectory)/android-release
+              artifactName: android-release
+
+  # ─── Stage 3: Build iOS ─────────────────────────────────────────────
+  - stage: Build_iOS
+    displayName: 'Build iOS'
+    dependsOn: Analyze
+    condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
+    jobs:
+      - job: iOS_Debug
+        displayName: 'iOS Debug Build'
+        pool:
+          vmImage: 'macOS-latest'
+        steps:
+          - checkout: self
+            fetchDepth: 0
+
+          - script: |
+              git clone https://github.com/flutter/flutter.git \
+                --depth 1 \
+                --branch stable \
+                $HOME/flutter
+              echo "##vso[task.prependpath]$HOME/flutter/bin"
+            displayName: 'Install Flutter'
+
+          - script: flutter pub get
+            displayName: 'Install Dependencies'
+
+          - script: |
+              flutter build ios --debug --no-codesign \
+                --dart-define=FLAVOR=development
+            displayName: 'Build iOS Debug (No Codesign)'
+
+          - script: |
+              cd ios && \
+              xcodebuild \
+                -workspace Runner.xcworkspace \
+                -scheme Runner \
+                -configuration Debug \
+                -sdk iphonesimulator \
+                -derivedDataPath build/ios-debug \
+                CODE_SIGN_IDENTITY="" \
+                CODE_SIGNING_REQUIRED=NO \
+                CODE_SIGNING_ALLOWED=NO
+            displayName: 'Build iOS Simulator IPA'
+
+          - task: CopyFiles@2
+            displayName: 'Copy iOS Build to Staging'
+            inputs:
+              sourceFolder: ios/build/ios-debug
+              contents: '**/*.app'
+              targetFolder: $(Build.ArtifactStagingDirectory)/ios-debug
+
+          - task: PublishBuildArtifacts@1
+            displayName: 'Publish iOS Debug Build'
+            inputs:
+              pathToPublish: $(Build.ArtifactStagingDirectory)/ios-debug
+              artifactName: ios-debug
+
+      - job: iOS_Release
+        displayName: 'iOS Release Build'
+        pool:
+          vmImage: 'macOS-latest'
+        condition: |
+          and(
+            succeeded(),
+            or(
+              eq(variables['Build.SourceBranch'], 'refs/heads/main'),
+              eq(variables['Build.SourceBranch'], 'refs/heads/master')
+            )
+          )
+        steps:
+          - checkout: self
+            fetchDepth: 0
+
+          - script: |
+              git clone https://github.com/flutter/flutter.git \
+                --depth 1 \
+                --branch stable \
+                $HOME/flutter
+              echo "##vso[task.prependpath]$HOME/flutter/bin"
+            displayName: 'Install Flutter'
+
+          - script: flutter pub get
+            displayName: 'Install Dependencies'
+
+          # 証明書・プロビジョニングプロファイルのインストール
+          - task: InstallAppleCertificate@2
+            displayName: 'Install Signing Certificate'
+            inputs:
+              certSecureFile: 'ios-distribution.p12'
+              certPwd: $(IOS_CERTIFICATE_PASSWORD)
+              keychain: temp
+
+          - task: InstallAppleProvisioningProfile@1
+            displayName: 'Install Provisioning Profile'
+            inputs:
+              provisioningProfileLocation: secureFiles
+              provProfileSecureFile: 'FlutterBase.mobileprovision'
+
+          - script: |
+              flutter build ipa --release \
+                --export-options-plist=ios/ExportOptions.plist \
+                --dart-define=FLAVOR=production
+            displayName: 'Build iOS Release IPA'
+
+          - task: CopyFiles@2
+            displayName: 'Copy IPA to Staging'
+            inputs:
+              sourceFolder: build/ios/ipa
+              contents: '*.ipa'
+              targetFolder: $(Build.ArtifactStagingDirectory)/ios-release
+
+          - task: PublishBuildArtifacts@1
+            displayName: 'Publish iOS Release IPA'
+            inputs:
+              pathToPublish: $(Build.ArtifactStagingDirectory)/ios-release
+              artifactName: ios-release
+
+  # ─── Stage 4: Deploy (App Distribution) ────────────────────────────
+  - stage: Deploy
+    displayName: 'Deploy to App Distribution'
+    dependsOn:
+      - Build_Android
+      - Build_iOS
+    condition: |
+      and(
+        succeeded(),
+        or(
+          eq(variables['Build.SourceBranch'], 'refs/heads/main'),
+          eq(variables['Build.SourceBranch'], 'refs/heads/master')
+        )
+      )
+    jobs:
+      - deployment: Deploy_Android
+        displayName: 'Deploy Android to App Center'
+        environment: 'Production'
+        pool:
+          vmImage: 'ubuntu-latest'
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - download: current
+                  artifact: android-release
+
+                # App Center CLI でのデプロイ
+                # 必要に応じて Firebase App Distribution や他の配布サービスに変更
+                - task: AppCenterDistribute@3
+                  displayName: 'Distribute Android to App Center'
+                  inputs:
+                    serverEndpoint: 'AppCenter'
+                    appSlug: '$(APP_CENTER_ORG)/$(APP_CENTER_ANDROID_APP)'
+                    appFile: $(Pipeline.Workspace)/android-release/*.aab
+                    releaseNotesOption: input
+                    releaseNotes: |
+                      Build: $(Build.BuildNumber)
+                      Branch: $(Build.SourceBranchName)
+                      Commit: $(Build.SourceVersion)
+                    destinationType: groups
+                    distributionGroupId: '$(APP_CENTER_DISTRIBUTION_GROUP)'
+                  condition: |
+                    and(succeeded(), ne(variables['APP_CENTER_ORG'], ''))
+
+      - deployment: Deploy_iOS
+        displayName: 'Deploy iOS to App Center'
+        environment: 'Production'
+        pool:
+          vmImage: 'macOS-latest'
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - download: current
+                  artifact: ios-release
+
+                - task: AppCenterDistribute@3
+                  displayName: 'Distribute iOS to App Center'
+                  inputs:
+                    serverEndpoint: 'AppCenter'
+                    appSlug: '$(APP_CENTER_ORG)/$(APP_CENTER_IOS_APP)'
+                    appFile: $(Pipeline.Workspace)/ios-release/*.ipa
+                    releaseNotesOption: input
+                    releaseNotes: |
+                      Build: $(Build.BuildNumber)
+                      Branch: $(Build.SourceBranchName)
+                      Commit: $(Build.SourceVersion)
+                    destinationType: groups
+                    distributionGroupId: '$(APP_CENTER_DISTRIBUTION_GROUP)'
+                  condition: |
+                    and(succeeded(), ne(variables['APP_CENTER_ORG'], ''))

@@ -1,0 +1,39 @@
+name: Auto Version Bump
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+permissions:
+  contents: write
+
+jobs:
+  bump-version:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Bump version
+        id: bump
+        run: bash scripts/bump_version.sh auto
+
+      - name: Create version tag
+        if: steps.bump.outputs.new_version != ''
+        run: |
+          VERSION="v${{ steps.bump.outputs.new_version }}"
+          git add pubspec.yaml
+          git commit -m "chore: bump version to ${{ steps.bump.outputs.new_version_full }}"
+          git tag "$VERSION"
+          git push origin main --tags

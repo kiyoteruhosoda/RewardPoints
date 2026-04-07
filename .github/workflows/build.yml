@@ -1,0 +1,160 @@
+name: Flutter Build
+
+on:
+  workflow_run:
+    workflows: ["Auto Version Bump"]
+    types:
+      - completed
+
+concurrency:
+  group: flutter-build
+  cancel-in-progress: false
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  start-runner:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Stop any existing ACI Runner
+        run: |
+          echo "Stopping any previously running ACI runner..."
+          curl -s -X POST "${{ secrets.FUNC_STOP_URL }}" || true
+          sleep 5
+
+      - name: Start ACI Runner
+        run: |
+          for ATTEMPT in 1 2 3 4; do
+            echo "--- Start attempt $ATTEMPT ---"
+            RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
+              "${{ secrets.FUNC_URL }}" \
+              -H "Content-Type: application/json" \
+              -d "{\"github_repo\": \"${{ github.repository }}\"}")
+
+            HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+            BODY=$(echo "$RESPONSE" | head -1)
+            echo "Response: $BODY"
+            echo "HTTP Status: $HTTP_CODE"
+
+            if [ "$HTTP_CODE" = "200" ]; then
+              echo "ACI Runner started successfully."
+              exit 0
+            fi
+
+            if [ "$ATTEMPT" -lt 4 ]; then
+              WAIT=$((2 ** ATTEMPT))
+              echo "Start failed (HTTP $HTTP_CODE). Retrying in ${WAIT}s..."
+              sleep "$WAIT"
+              echo "Stopping runner before retry..."
+              curl -s -X POST "${{ secrets.FUNC_STOP_URL }}" || true
+              sleep 5
+            fi
+          done
+
+          echo "Failed to start ACI Runner after 4 attempts."
+          exit 1
+
+      - name: Wait and monitor ACI
+        run: |
+          STATUS_URL="${{ secrets.FUNC_STATUS_URL }}"
+
+          for i in $(seq 1 20); do
+            echo "--- Attempt $i ---"
+            RESULT=$(curl -s "$STATUS_URL")
+            STATUS=$(echo $RESULT | jq -r '.status')
+            LOGS=$(echo $RESULT | jq -r '.logs')
+
+            echo "ACI Status: $STATUS"
+            echo "--- ACI Logs ---"
+            echo "$LOGS"
+
+            if [ "$STATUS" = "Terminated" ]; then
+              EXIT_CODE=$(echo $RESULT | jq -r '.exit_code')
+              echo "ACI terminated with exit code: $EXIT_CODE"
+              if [ "$EXIT_CODE" != "0" ]; then
+                exit 1
+              fi
+            fi
+
+            if echo "$LOGS" | grep -q "Listening for Jobs"; then
+              echo "Runner is ready!"
+              exit 0
+            fi
+
+            sleep 15
+          done
+
+          echo "Timeout waiting for runner"
+          exit 1
+
+  build:
+    needs: start-runner
+    runs-on: [self-hosted, flutter, android]
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.workflow_run.head_branch || github.ref }}
+          fetch-depth: 0  # Full history needed for git rev-list --count
+      - name: Setup Android SDK permissions
+        run: |
+          if [ -n "$ANDROID_SDK_ROOT" ]; then
+            sudo chmod -R a+rwx "$ANDROID_SDK_ROOT" || true
+          elif [ -n "$ANDROID_HOME" ]; then
+            sudo chmod -R a+rwx "$ANDROID_HOME" || true
+          fi
+      - name: Flutter pub get
+        run: flutter pub get
+      - name: Generate build info
+        run: bash scripts/generate_build_info.sh
+      - name: Setup release signing
+        env:
+          KEYSTORE_BASE64:  ${{ secrets.KEYSTORE_BASE64 }}
+          KEY_ALIAS:        ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD:     ${{ secrets.KEY_PASSWORD }}
+          STORE_PASSWORD:   ${{ secrets.STORE_PASSWORD }}
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "$KEYSTORE_BASE64" | base64 -d > android/app/release.keystore
+            {
+              echo "storeFile=../app/release.keystore"
+              echo "storePassword=$STORE_PASSWORD"
+              echo "keyAlias=$KEY_ALIAS"
+              echo "keyPassword=$KEY_PASSWORD"
+            } > android/key.properties
+            echo "Release signing configured."
+          else
+            echo "KEYSTORE_BASE64 not set — using debug signing (dev/test only)."
+          fi
+      - name: Flutter build APK
+        run: flutter build apk --release --build-number=$(git rev-list --count HEAD)
+      - name: Flutter build AAB
+        run: flutter build appbundle --release --build-number=$(git rev-list --count HEAD)
+      - name: Upload APK
+        uses: actions/upload-artifact@v5
+        with:
+          name: apk
+          path: build/app/outputs/flutter-apk/app-release.apk
+          retention-days: 30
+      - name: Upload AAB
+        uses: actions/upload-artifact@v5
+        with:
+          name: aab
+          path: build/app/outputs/bundle/release/app-release.aab
+          retention-days: 30
+
+  stop-runner:
+    needs: build
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Stop ACI
+        run: |
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
+            "${{ secrets.FUNC_STOP_URL }}")
+
+          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+          BODY=$(echo "$RESPONSE" | head -1)
+          echo "Response: $BODY"
+          echo "HTTP Status: $HTTP_CODE"
