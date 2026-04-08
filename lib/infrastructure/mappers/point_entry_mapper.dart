@@ -17,6 +17,7 @@ final class PointEntryMapper {
           dateTime: dateTime,
           points: row.points,
           reason: row.reason ?? '',
+          tag: row.tag,
         ),
       'consumption' => PointConsumption(
           id: id,

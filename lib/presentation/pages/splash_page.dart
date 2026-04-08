@@ -78,7 +78,7 @@ class _SplashPageState extends State<SplashPage>
                   borderRadius: AppRadius.xlBorder,
                 ),
                 child: Icon(
-                  Icons.web_asset,
+                  Icons.savings_outlined,
                   size: AppSpacing.splashIconSize,
                   color: colorScheme.primary,
                 ),

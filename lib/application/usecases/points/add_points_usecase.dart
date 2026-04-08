@@ -14,6 +14,7 @@ final class AddPointsUseCase {
       dateTime: dto.dateTime,
       points: dto.points,
       reason: dto.reason,
+      tag: dto.tag,
     );
     final addition = entry as PointAddition;
     return PointEntryDto(
@@ -23,6 +24,7 @@ final class AddPointsUseCase {
       dateTime: entry.dateTime,
       points: entry.points,
       reason: addition.reason,
+      tag: addition.tag,
     );
   }
 }

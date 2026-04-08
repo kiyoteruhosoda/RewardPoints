@@ -22,6 +22,7 @@ final class SqlitePointEntryRepository implements PointEntryRepository {
     required DateTime dateTime,
     required int points,
     required String reason,
+    String? tag,
   }) async {
     final row = PointEntryRow(
       id: 0,
@@ -30,6 +31,7 @@ final class SqlitePointEntryRepository implements PointEntryRepository {
       dateTime: dateTime.toIso8601String(),
       points: points,
       reason: reason,
+      tag: tag,
     );
     final id = await _dao.insert(row);
     return PointAddition(
@@ -38,6 +40,7 @@ final class SqlitePointEntryRepository implements PointEntryRepository {
       dateTime: dateTime,
       points: points,
       reason: reason,
+      tag: tag,
     );
   }
 
@@ -77,5 +80,15 @@ final class SqlitePointEntryRepository implements PointEntryRepository {
   @override
   Future<void> deleteByUserId(UserId userId) async {
     await _dao.deleteByUserId(userId.value);
+  }
+
+  @override
+  Future<List<String>> getDistinctReasons(UserId userId) async {
+    return _dao.getDistinctReasons(userId.value);
+  }
+
+  @override
+  Future<List<String>> getDistinctApplications(UserId userId) async {
+    return _dao.getDistinctApplications(userId.value);
   }
 }

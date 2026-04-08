@@ -115,8 +115,51 @@ class _UserDetailPageState extends State<UserDetailPage> {
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.pageMargin),
       itemCount: _viewModel.entries.length,
       separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.sm),
-      itemBuilder: (context, index) =>
-          _EntryCard(entry: _viewModel.entries[index]),
+      itemBuilder: (context, index) {
+        final entry = _viewModel.entries[index];
+        return Dismissible(
+          key: ValueKey(entry.id),
+          direction: DismissDirection.endToStart,
+          background: Container(
+            alignment: Alignment.centerRight,
+            padding: const EdgeInsets.only(right: AppSpacing.lg),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.errorContainer,
+              borderRadius: AppRadius.smBorder,
+            ),
+            child: Icon(
+              Icons.delete_outline,
+              color: Theme.of(context).colorScheme.onErrorContainer,
+            ),
+          ),
+          confirmDismiss: (_) async {
+            final confirmed = await showDialog<bool>(
+              context: context,
+              builder: (ctx) => AlertDialog(
+                title: const Text(AppStrings.pointDeleteTitle),
+                content: const Text(AppStrings.pointDeleteBody),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(ctx).pop(false),
+                    child: const Text(AppStrings.commonCancel),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.of(ctx).pop(true),
+                    child: Text(
+                      AppStrings.commonDelete,
+                      style: TextStyle(
+                          color: Theme.of(ctx).colorScheme.error),
+                    ),
+                  ),
+                ],
+              ),
+            );
+            return confirmed == true;
+          },
+          onDismissed: (_) => _viewModel.deleteEntry(entry.id),
+          child: _EntryCard(entry: entry),
+        );
+      },
     );
   }
 }
@@ -132,11 +175,20 @@ class _EntryCard extends StatelessWidget {
     final pointColor =
         isAddition ? Colors.green.shade700 : colorScheme.error;
     final pointPrefix = isAddition ? '+' : '-';
-    final subtitle = isAddition
-        ? '${AppStrings.pointReason}: ${entry.reason ?? ''}'
-        : entry.tag != null
-            ? '${AppStrings.pointApplication}: ${entry.application ?? ''} · ${AppStrings.pointTag}: ${entry.tag}'
-            : '${AppStrings.pointApplication}: ${entry.application ?? ''}';
+
+    String subtitle;
+    if (isAddition) {
+      final reason = entry.reason ?? '';
+      subtitle = '${AppStrings.pointReason}: $reason';
+      if (entry.tag != null) {
+        subtitle += ' · ${AppStrings.pointTag}: ${entry.tag}';
+      }
+    } else {
+      subtitle = '${AppStrings.pointApplication}: ${entry.application ?? ''}';
+      if (entry.tag != null) {
+        subtitle += ' · ${AppStrings.pointTag}: ${entry.tag}';
+      }
+    }
 
     return AppCard(
       child: Row(
