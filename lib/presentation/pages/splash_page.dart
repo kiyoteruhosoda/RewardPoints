@@ -70,17 +70,12 @@ class _SplashPageState extends State<SplashPage>
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Container(
-                width: AppSpacing.splashIconContainer,
-                height: AppSpacing.splashIconContainer,
-                decoration: BoxDecoration(
-                  color: colorScheme.onPrimary,
-                  borderRadius: AppRadius.xlBorder,
-                ),
-                child: Icon(
-                  Icons.savings_outlined,
-                  size: AppSpacing.splashIconSize,
-                  color: colorScheme.primary,
+              ClipRRect(
+                borderRadius: AppRadius.xlBorder,
+                child: Image.asset(
+                  'assets/icon/app_icon.png',
+                  width: AppSpacing.splashIconContainer,
+                  height: AppSpacing.splashIconContainer,
                 ),
               ),
               const SizedBox(height: AppSpacing.xl),
