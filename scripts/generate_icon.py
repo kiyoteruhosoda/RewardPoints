@@ -1,25 +1,22 @@
 #!/usr/bin/env python3
-"""Generate app icon PNGs for PointBook.
+"""Generate app icon and splash image for PointBook.
 
 Run from the project root:
     python3 scripts/generate_icon.py
 
 Outputs:
-    assets/icon/app_icon.png          — master 1024x1024
-    android/app/src/main/res/mipmap-mdpi/ic_launcher.png      — 48x48
-    android/app/src/main/res/mipmap-hdpi/ic_launcher.png      — 72x72
-    android/app/src/main/res/mipmap-xhdpi/ic_launcher.png     — 96x96
-    android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png    — 144x144
-    android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png   — 192x192
+    assets/icon/app_icon.png                                      — master 1024x1024
+    android/app/src/main/res/mipmap-{mdpi..xxxhdpi}/ic_launcher.png
+    android/app/src/main/res/drawable/splash.png                  — splash (transparent bg)
 """
 
 import os
-from PIL import Image, ImageDraw, ImageFilter
-
-SIZE = 1024
-CENTER = SIZE // 2  # 512
+import numpy as np
+from PIL import Image, ImageDraw
 
 MASTER_PATH = os.path.join("assets", "icon", "app_icon.png")
+SPLASH_PATH = os.path.join("android", "app", "src", "main", "res", "drawable", "splash.png")
+ANDROID_RES = os.path.join("android", "app", "src", "main", "res")
 
 MIPMAP_SIZES = {
     "mipmap-mdpi":    48,
@@ -28,91 +25,114 @@ MIPMAP_SIZES = {
     "mipmap-xxhdpi":  144,
     "mipmap-xxxhdpi": 192,
 }
-ANDROID_RES = os.path.join("android", "app", "src", "main", "res")
 
 
-def generate_master() -> Image.Image:
-    # --- 1. Gradient background ---
-    bg = Image.new("RGBA", (SIZE, SIZE), (0, 0, 0, 0))
-    from_color = (0xBF, 0x36, 0x0C)   # deep amber #BF360C
-    to_color   = (0xFF, 0xD7, 0x40)   # golden yellow #FFD740
+def make_coin_rgba(size: int) -> Image.Image:
+    """Render the coin design as RGBA with transparent background.
 
-    pixels = bg.load()
-    for y in range(SIZE):
-        for x in range(SIZE):
-            t = (x + y) / (2.0 * (SIZE - 1))
-            r = int(from_color[0] + t * (to_color[0] - from_color[0]))
-            g = int(from_color[1] + t * (to_color[1] - from_color[1]))
-            b = int(from_color[2] + t * (to_color[2] - from_color[2]))
-            pixels[x, y] = (r, g, b, 255)
+    SVG design (scaled from 512px viewBox):
+      - Outer circle r=230: fill=#2060C0, opacity=0.5
+      - Main  circle r=210: linear gradient #7DBDFF → #4A8FE8 → #2860C8
+      - Inner ring   r=170: white stroke=6, opacity=0.25
+    """
+    center = size // 2
+    scale = size / 512.0
 
-    # --- 2. Rounded-square mask (corner_radius=230) ---
-    mask = Image.new("L", (SIZE, SIZE), 0)
-    mask_draw = ImageDraw.Draw(mask)
-    mask_draw.rounded_rectangle([0, 0, SIZE - 1, SIZE - 1], radius=230, fill=255)
-    bg.putalpha(mask)
+    result = Image.new("RGBA", (size, size), (0, 0, 0, 0))
 
-    # --- 3. Star vertices ---
-    # 4-pointed elongated sparkle star (✦ style)
-    # vertical outer=380, horizontal outer=200, inner waist=55 (at 45°: ≈39px)
-    star_verts = [
-        (512, 132),   # top tip
-        (551, 473),   # upper-right waist
-        (712, 512),   # right tip
-        (551, 551),   # lower-right waist
-        (512, 892),   # bottom tip
-        (473, 551),   # lower-left waist
-        (312, 512),   # left tip
-        (473, 473),   # upper-left waist
-    ]
-
-    # --- 4. Drop shadow ---
-    shadow_layer = Image.new("RGBA", (SIZE, SIZE), (0, 0, 0, 0))
-    ImageDraw.Draw(shadow_layer).polygon(star_verts, fill=(0, 0, 0, 153))
-    shadow_layer = shadow_layer.filter(ImageFilter.GaussianBlur(radius=20))
-    shadow_shifted = Image.new("RGBA", (SIZE, SIZE), (0, 0, 0, 0))
-    shadow_shifted.paste(shadow_layer, (0, 8))
-
-    # --- 5. Star (white) ---
-    star_layer = Image.new("RGBA", (SIZE, SIZE), (0, 0, 0, 0))
-    ImageDraw.Draw(star_layer).polygon(star_verts, fill=(255, 255, 255, 245))
-
-    # --- 6. Center glow ---
-    glow_layer = Image.new("RGBA", (SIZE, SIZE), (0, 0, 0, 0))
-    glow_r = 45
-    ImageDraw.Draw(glow_layer).ellipse(
-        [CENTER - glow_r, CENTER - glow_r, CENTER + glow_r, CENTER + glow_r],
-        fill=(255, 255, 255, 255),
+    # --- 1. Outer semi-transparent circle ---
+    outer_r = int(230 * scale)
+    outer_layer = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+    ImageDraw.Draw(outer_layer).ellipse(
+        [center - outer_r, center - outer_r, center + outer_r, center + outer_r],
+        fill=(0x20, 0x60, 0xC0, 127),  # #2060C0 at 50% opacity
     )
-    glow_layer = glow_layer.filter(ImageFilter.GaussianBlur(radius=14))
+    result = Image.alpha_composite(result, outer_layer)
 
-    # --- 7. Composite ---
-    result = bg.copy()
-    result = Image.alpha_composite(result, shadow_shifted)
-    result = Image.alpha_composite(result, star_layer)
-    result = Image.alpha_composite(result, glow_layer)
+    # --- 2. Gradient circle ---
+    grad_r = int(210 * scale)
+
+    # Gradient stops: 0%=#7DBDFF, 50%=#4A8FE8, 100%=#2860C8
+    c0 = np.array([0x7D, 0xBD, 0xFF], dtype=np.float32)
+    c1 = np.array([0x4A, 0x8F, 0xE8], dtype=np.float32)
+    c2 = np.array([0x28, 0x60, 0xC8], dtype=np.float32)
+
+    # Linear gradient direction: (x1=20%,y1=10%) → (x2=80%,y2=90%)
+    gx1, gy1 = 0.2 * size, 0.1 * size
+    gx2, gy2 = 0.8 * size, 0.9 * size
+    dx, dy = gx2 - gx1, gy2 - gy1
+    length_sq = float(dx * dx + dy * dy)
+
+    y_arr, x_arr = np.mgrid[0:size, 0:size]
+    t = ((x_arr.astype(np.float32) - gx1) * dx +
+         (y_arr.astype(np.float32) - gy1) * dy) / length_sq
+    t = np.clip(t, 0.0, 1.0)
+
+    first = t < 0.5
+    t1 = np.where(first, t / 0.5, 0.0).astype(np.float32)
+    t2 = np.where(~first, (t - 0.5) / 0.5, 0.0).astype(np.float32)
+
+    r_ch = np.where(first, c0[0] + t1 * (c1[0] - c0[0]),
+                            c1[0] + t2 * (c2[0] - c1[0])).astype(np.uint8)
+    g_ch = np.where(first, c0[1] + t1 * (c1[1] - c0[1]),
+                            c1[1] + t2 * (c2[1] - c1[1])).astype(np.uint8)
+    b_ch = np.where(first, c0[2] + t1 * (c1[2] - c0[2]),
+                            c1[2] + t2 * (c2[2] - c1[2])).astype(np.uint8)
+    a_ch = np.full((size, size), 255, dtype=np.uint8)
+
+    gradient_img = Image.fromarray(np.stack([r_ch, g_ch, b_ch, a_ch], axis=2), "RGBA")
+
+    # Clip gradient to circle
+    circle_mask = Image.new("L", (size, size), 0)
+    ImageDraw.Draw(circle_mask).ellipse(
+        [center - grad_r, center - grad_r, center + grad_r, center + grad_r],
+        fill=255,
+    )
+    gradient_circle = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+    gradient_circle.paste(gradient_img, mask=circle_mask)
+    result = Image.alpha_composite(result, gradient_circle)
+
+    # --- 3. Inner ring ---
+    ring_r = int(170 * scale)
+    stroke_w = max(2, int(6 * scale))
+    ring_layer = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+    ImageDraw.Draw(ring_layer).ellipse(
+        [center - ring_r, center - ring_r, center + ring_r, center + ring_r],
+        fill=None,
+        outline=(255, 255, 255, 64),  # white at 25% opacity
+        width=stroke_w,
+    )
+    result = Image.alpha_composite(result, ring_layer)
 
     return result
 
 
-def main() -> None:
-    print("Generating master icon...")
-    master = generate_master()
+def on_white(coin: Image.Image) -> Image.Image:
+    """Composite coin (RGBA) onto an opaque white background."""
+    bg = Image.new("RGBA", coin.size, (255, 255, 255, 255))
+    return Image.alpha_composite(bg, coin)
 
+
+def main() -> None:
+    # Master (1024x1024, white bg)
+    print("Generating master icon (1024x1024)…")
+    master = on_white(make_coin_rgba(1024))
     os.makedirs(os.path.dirname(MASTER_PATH), exist_ok=True)
     master.save(MASTER_PATH, "PNG")
     print(f"  Saved {MASTER_PATH}")
 
-    # Convert to RGB for mipmap PNGs (no transparency needed for launcher icons)
-    master_rgb = master.convert("RGB")
-
-    print("Generating Android mipmap icons...")
+    # Android mipmap icons (scaled from master)
+    print("Generating Android mipmap icons…")
     for density, px in MIPMAP_SIZES.items():
-        out_dir = os.path.join(ANDROID_RES, density)
-        out_path = os.path.join(out_dir, "ic_launcher.png")
-        resized = master_rgb.resize((px, px), Image.LANCZOS)
-        resized.save(out_path, "PNG")
-        print(f"  Saved {out_path}  ({px}x{px})")
+        out_path = os.path.join(ANDROID_RES, density, "ic_launcher.png")
+        master.resize((px, px), Image.LANCZOS).convert("RGB").save(out_path, "PNG")
+        print(f"  Saved {out_path}  ({px}×{px})")
+
+    # Splash (512x512, transparent bg — XML provides white background)
+    print("Generating splash image (512x512)…")
+    splash = make_coin_rgba(512)
+    splash.save(SPLASH_PATH, "PNG")
+    print(f"  Saved {SPLASH_PATH}")
 
     print("Done.")
 
