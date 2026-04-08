@@ -21,8 +21,10 @@ final class PointAddition extends PointEntry {
     required super.dateTime,
     required super.points,
     required this.reason,
+    this.tag,
   });
   final String reason;
+  final String? tag;
 }
 
 final class PointConsumption extends PointEntry {

@@ -4,7 +4,7 @@ class AppStrings {
   AppStrings._();
 
   // ─── App ──────────────────────────────────────────────────────────────
-  static const String appName = 'Point Manager';
+  static const String appName = 'PointBook';
   static const String appDescription =
       'Point accumulation and consumption management app';
 
@@ -14,7 +14,7 @@ class AppStrings {
   static const String navSettings = 'Settings';
 
   // ─── Drawer ───────────────────────────────────────────────────────────
-  static const String drawerSubtitle = 'DADS Design System';
+  static const String drawerSubtitle = 'Point accumulation & spending';
   static const String drawerClose = 'Close';
   static const String drawerAbout = 'About';
   static const String drawerLicenses = 'Licenses';
@@ -147,7 +147,7 @@ class AppStrings {
       'Please refer to the package license file for details.';
 
   // ─── Splash screen ───────────────────────────────────────────────────
-  static const String splashSubtitle = 'DADS Design System';
+  static const String splashSubtitle = 'Point accumulation & spending';
 
   // ─── Common ──────────────────────────────────────────────────────────
   static const String commonRetry = 'Retry';
@@ -190,6 +190,8 @@ class AppStrings {
   static const String pointApplicationError = 'Application is required';
   static const String pointTag = 'Tag (optional)';
   static const String pointTagHint = 'e.g. campaign, reward';
+  static const String pointDeleteTitle = 'Delete Entry';
+  static const String pointDeleteBody = 'Delete this point history entry?';
 
   // ─── Data export/import ───────────────────────────────────────────────
   static const String dataTitle = 'Data';

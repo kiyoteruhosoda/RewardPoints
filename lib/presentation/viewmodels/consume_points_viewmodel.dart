@@ -1,19 +1,28 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutterbase/application/dto/consume_points_dto.dart';
 import 'package:flutterbase/application/usecases/points/consume_points_usecase.dart';
+import 'package:flutterbase/application/usecases/points/get_past_applications_usecase.dart';
 import 'package:flutterbase/shared/errors/app_error.dart';
 
 enum ConsumePointsState { idle, loading, success, error }
 
 final class ConsumePointsViewModel extends ChangeNotifier {
-  ConsumePointsViewModel(this._consumePoints);
+  ConsumePointsViewModel(this._consumePoints, this._getPastApplications);
   final ConsumePointsUseCase _consumePoints;
+  final GetPastApplicationsUseCase _getPastApplications;
 
   ConsumePointsState _state = ConsumePointsState.idle;
   AppError? _error;
+  List<String> _applicationSuggestions = [];
 
   ConsumePointsState get state => _state;
   AppError? get error => _error;
+  List<String> get applicationSuggestions => _applicationSuggestions;
+
+  Future<void> loadSuggestions(int userId) async {
+    _applicationSuggestions = await _getPastApplications.execute(userId);
+    notifyListeners();
+  }
 
   Future<void> submit({
     required int userId,

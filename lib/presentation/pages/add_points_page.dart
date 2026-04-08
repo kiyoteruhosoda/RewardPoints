@@ -17,8 +17,10 @@ class AddPointsPage extends StatefulWidget {
 class _AddPointsPageState extends State<AddPointsPage> {
   late final AddPointsViewModel _viewModel;
   final _formKey = GlobalKey<FormState>();
-  final _pointsController = TextEditingController();
   final _reasonController = TextEditingController();
+  final _reasonFocusNode = FocusNode();
+  final _pointsController = TextEditingController();
+  final _tagController = TextEditingController();
   DateTime _selectedDate = DateTime.now();
 
   @override
@@ -26,14 +28,17 @@ class _AddPointsPageState extends State<AddPointsPage> {
     super.initState();
     _viewModel = sl<AddPointsViewModel>();
     _viewModel.addListener(_onChanged);
+    _viewModel.loadSuggestions(widget.userId);
   }
 
   @override
   void dispose() {
     _viewModel.removeListener(_onChanged);
     _viewModel.reset();
-    _pointsController.dispose();
     _reasonController.dispose();
+    _reasonFocusNode.dispose();
+    _pointsController.dispose();
+    _tagController.dispose();
     super.dispose();
   }
 
@@ -63,6 +68,8 @@ class _AddPointsPageState extends State<AddPointsPage> {
               ),
             ),
             const SizedBox(height: AppSpacing.lg),
+            _buildReasonField(context),
+            const SizedBox(height: AppSpacing.lg),
             TextFormField(
               controller: _pointsController,
               keyboardType: TextInputType.number,
@@ -82,16 +89,12 @@ class _AddPointsPageState extends State<AddPointsPage> {
             ),
             const SizedBox(height: AppSpacing.lg),
             TextFormField(
-              controller: _reasonController,
+              controller: _tagController,
               decoration: const InputDecoration(
-                labelText: AppStrings.pointReason,
-                hintText: AppStrings.pointReasonHint,
+                labelText: AppStrings.pointTag,
+                hintText: AppStrings.pointTagHint,
                 border: OutlineInputBorder(),
               ),
-              validator: (v) =>
-                  (v == null || v.trim().isEmpty)
-                      ? AppStrings.pointReasonError
-                      : null,
             ),
             const SizedBox(height: AppSpacing.xxl),
             if (_viewModel.state == AddPointsState.error)
@@ -115,6 +118,62 @@ class _AddPointsPageState extends State<AddPointsPage> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildReasonField(BuildContext context) {
+    final suggestions = _viewModel.reasonSuggestions;
+    return RawAutocomplete<String>(
+      textEditingController: _reasonController,
+      focusNode: _reasonFocusNode,
+      optionsBuilder: (textEditingValue) {
+        if (suggestions.isEmpty) return const [];
+        final query = textEditingValue.text.toLowerCase();
+        if (query.isEmpty) return suggestions;
+        return suggestions.where(
+          (s) => s.toLowerCase().contains(query),
+        );
+      },
+      optionsViewBuilder: (context, onSelected, options) {
+        return Align(
+          alignment: Alignment.topLeft,
+          child: Material(
+            elevation: 4,
+            borderRadius: AppRadius.smBorder,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 200),
+              child: ListView.builder(
+                padding: EdgeInsets.zero,
+                shrinkWrap: true,
+                itemCount: options.length,
+                itemBuilder: (context, index) {
+                  final option = options.elementAt(index);
+                  return ListTile(
+                    dense: true,
+                    title: Text(option),
+                    onTap: () => onSelected(option),
+                  );
+                },
+              ),
+            ),
+          ),
+        );
+      },
+      fieldViewBuilder: (context, controller, focusNode, onSubmitted) {
+        return TextFormField(
+          controller: controller,
+          focusNode: focusNode,
+          decoration: const InputDecoration(
+            labelText: AppStrings.pointReason,
+            hintText: AppStrings.pointReasonHint,
+            border: OutlineInputBorder(),
+          ),
+          validator: (v) =>
+              (v == null || v.trim().isEmpty)
+                  ? AppStrings.pointReasonError
+                  : null,
+        );
+      },
     );
   }
 
@@ -152,6 +211,9 @@ class _AddPointsPageState extends State<AddPointsPage> {
       dateTime: _selectedDate,
       points: int.parse(_pointsController.text),
       reason: _reasonController.text.trim(),
+      tag: _tagController.text.trim().isEmpty
+          ? null
+          : _tagController.text.trim(),
     );
   }
 

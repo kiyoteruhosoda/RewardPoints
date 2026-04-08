@@ -28,4 +28,20 @@ final class PointEntryDao {
   Future<void> deleteByUserId(int userId) async {
     await _db.delete(table, where: 'user_id = ?', whereArgs: [userId]);
   }
+
+  Future<List<String>> getDistinctReasons(int userId) async {
+    final rows = await _db.rawQuery(
+      'SELECT DISTINCT reason FROM $table WHERE user_id = ? AND type = ? AND reason IS NOT NULL ORDER BY reason',
+      [userId, 'addition'],
+    );
+    return rows.map((r) => r['reason'] as String).toList();
+  }
+
+  Future<List<String>> getDistinctApplications(int userId) async {
+    final rows = await _db.rawQuery(
+      'SELECT DISTINCT application FROM $table WHERE user_id = ? AND type = ? AND application IS NOT NULL ORDER BY application',
+      [userId, 'consumption'],
+    );
+    return rows.map((r) => r['application'] as String).toList();
+  }
 }

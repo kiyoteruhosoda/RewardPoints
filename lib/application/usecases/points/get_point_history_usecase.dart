@@ -20,6 +20,7 @@ final class GetPointHistoryUseCase {
             dateTime: a.dateTime,
             points: a.points,
             reason: a.reason,
+            tag: a.tag,
           ),
         PointConsumption c => PointEntryDto(
             id: c.id.value,

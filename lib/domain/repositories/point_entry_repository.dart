@@ -9,6 +9,7 @@ abstract interface class PointEntryRepository {
     required DateTime dateTime,
     required int points,
     required String reason,
+    String? tag,
   });
   Future<PointEntry> consumePoints({
     required UserId userId,
@@ -19,4 +20,6 @@ abstract interface class PointEntryRepository {
   });
   Future<void> delete(PointEntryId id);
   Future<void> deleteByUserId(UserId userId);
+  Future<List<String>> getDistinctReasons(UserId userId);
+  Future<List<String>> getDistinctApplications(UserId userId);
 }
