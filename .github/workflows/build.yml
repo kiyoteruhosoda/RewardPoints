@@ -109,7 +109,17 @@ jobs:
   build:
     needs: start-runner
     runs-on: [self-hosted, flutter, android]
+    timeout-minutes: 30
     steps:
+      - name: Runner diagnostics
+        run: |
+          echo "=== Runner Info ==="
+          echo "Hostname: $(hostname)"
+          echo "Runner name: ${RUNNER_NAME:-unknown}"
+          echo "Runner labels: ${RUNNER_LABELS:-unknown}"
+          echo "Flutter: $(flutter --version 2>&1 | head -1 || echo 'not found')"
+          echo "Java: $(java -version 2>&1 | head -1 || echo 'not found')"
+          echo "Android SDK: ${ANDROID_SDK_ROOT:-${ANDROID_HOME:-not set}}"
       - uses: actions/checkout@v5
         with:
           ref: ${{ github.event.workflow_run.head_branch || github.ref }}
