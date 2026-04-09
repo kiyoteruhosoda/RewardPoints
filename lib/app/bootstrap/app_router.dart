@@ -4,7 +4,6 @@ import 'package:flutterbase/presentation/pages/add_points_page.dart';
 import 'package:flutterbase/presentation/pages/consume_points_page.dart';
 import 'package:flutterbase/presentation/pages/export_import_page.dart';
 import 'package:flutterbase/presentation/pages/main_page.dart';
-import 'package:flutterbase/presentation/pages/splash_page.dart';
 import 'package:flutterbase/presentation/pages/system/about_page.dart';
 import 'package:flutterbase/presentation/pages/system/debug_page.dart';
 import 'package:flutterbase/presentation/pages/system/licenses_page.dart';
@@ -17,7 +16,6 @@ import 'package:flutterbase/shared/logging/app_logger.dart';
 class AppRouter {
   AppRouter._();
 
-  static const String splash = '/';
   static const String main = '/main';
   static const String about = '/about';
   static const String licenses = '/licenses';
@@ -31,10 +29,6 @@ class AppRouter {
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
     sl<AppLogger>().debug('[Router] → ${settings.name}');
     return switch (settings.name) {
-      splash => MaterialPageRoute<void>(
-          builder: (_) => const SplashPage(),
-          settings: settings,
-        ),
       main => MaterialPageRoute<void>(
           builder: (_) => const MainPage(),
           settings: settings,
