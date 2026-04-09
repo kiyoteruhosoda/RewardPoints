@@ -73,6 +73,25 @@ final class SqlitePointEntryRepository implements PointEntryRepository {
   }
 
   @override
+  Future<void> update(
+    PointEntryId id, {
+    required DateTime dateTime,
+    required int points,
+    String? reason,
+    String? application,
+    String? tag,
+  }) async {
+    await _dao.update(
+      id: id.value,
+      dateTime: dateTime.toIso8601String(),
+      points: points,
+      reason: reason,
+      application: application,
+      tag: tag,
+    );
+  }
+
+  @override
   Future<void> delete(PointEntryId id) async {
     await _dao.delete(id.value);
   }

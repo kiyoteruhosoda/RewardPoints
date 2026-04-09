@@ -192,6 +192,7 @@ class AppStrings {
   static const String pointTagHint = 'e.g. campaign, reward';
   static const String pointDeleteTitle = 'Delete Entry';
   static const String pointDeleteBody = 'Delete this point history entry?';
+  static const String pointEditTitle = 'Edit Entry';
 
   // ─── Data export/import ───────────────────────────────────────────────
   static const String dataTitle = 'Data';

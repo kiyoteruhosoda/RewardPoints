@@ -21,6 +21,28 @@ final class PointEntryDao {
     return _db.insert(table, map);
   }
 
+  Future<void> update({
+    required int id,
+    required String dateTime,
+    required int points,
+    String? reason,
+    String? application,
+    String? tag,
+  }) async {
+    await _db.update(
+      table,
+      {
+        'date_time': dateTime,
+        'points': points,
+        'reason': reason,
+        'application': application,
+        'tag': tag,
+      },
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
   Future<void> delete(int id) async {
     await _db.delete(table, where: 'id = ?', whereArgs: [id]);
   }

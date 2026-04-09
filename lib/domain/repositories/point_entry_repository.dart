@@ -18,6 +18,14 @@ abstract interface class PointEntryRepository {
     required String application,
     String? tag,
   });
+  Future<void> update(
+    PointEntryId id, {
+    required DateTime dateTime,
+    required int points,
+    String? reason,
+    String? application,
+    String? tag,
+  });
   Future<void> delete(PointEntryId id);
   Future<void> deleteByUserId(UserId userId);
   Future<List<String>> getDistinctReasons(UserId userId);

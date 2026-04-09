@@ -10,6 +10,7 @@ import 'package:flutterbase/application/usecases/debug/set_log_level_usecase.dar
 import 'package:flutterbase/application/usecases/points/add_points_usecase.dart';
 import 'package:flutterbase/application/usecases/points/consume_points_usecase.dart';
 import 'package:flutterbase/application/usecases/points/delete_point_entry_usecase.dart';
+import 'package:flutterbase/application/usecases/points/update_point_entry_usecase.dart';
 import 'package:flutterbase/application/usecases/points/get_past_applications_usecase.dart';
 import 'package:flutterbase/application/usecases/points/get_past_reasons_usecase.dart';
 import 'package:flutterbase/application/usecases/points/get_point_balance_usecase.dart';
@@ -163,6 +164,9 @@ Future<void> setupServiceLocator() async {
   sl.registerFactory<DeletePointEntryUseCase>(
     () => DeletePointEntryUseCase(sl<PointEntryRepository>()),
   );
+  sl.registerFactory<UpdatePointEntryUseCase>(
+    () => UpdatePointEntryUseCase(sl<PointEntryRepository>()),
+  );
   sl.registerFactory<ExportDataUseCase>(
     () => ExportDataUseCase(sl<UserRepository>(), sl<PointEntryRepository>()),
   );
@@ -183,6 +187,7 @@ Future<void> setupServiceLocator() async {
       sl<GetPointHistoryUseCase>(),
       sl<GetPointBalanceUseCase>(),
       sl<DeletePointEntryUseCase>(),
+      sl<UpdatePointEntryUseCase>(),
     ),
   );
   sl.registerFactory<AddPointsViewModel>(

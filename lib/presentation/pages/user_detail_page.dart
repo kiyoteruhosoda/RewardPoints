@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutterbase/app/di/service_locator.dart';
 import 'package:flutterbase/application/dto/point_entry_dto.dart';
+import 'package:flutterbase/application/dto/update_point_entry_dto.dart';
 import 'package:flutterbase/presentation/viewmodels/user_detail_viewmodel.dart';
 import 'package:flutterbase/presentation/widgets/ui/widgets.dart';
 import 'package:flutterbase/shared/l10n/app_strings.dart';
@@ -37,6 +39,16 @@ class _UserDetailPageState extends State<UserDetailPage> {
   }
 
   void _onChanged() => setState(() {});
+
+  Future<void> _showEditDialog(PointEntryDto entry) async {
+    final dto = await showDialog<UpdatePointEntryDto>(
+      context: context,
+      builder: (ctx) => _EditEntryDialog(entry: entry),
+    );
+    if (dto != null && mounted) {
+      await _viewModel.updateEntry(dto);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -157,7 +169,11 @@ class _UserDetailPageState extends State<UserDetailPage> {
             return confirmed == true;
           },
           onDismissed: (_) => _viewModel.deleteEntry(entry.id),
-          child: _EntryCard(entry: entry),
+          child: InkWell(
+            onTap: () => _showEditDialog(entry),
+            borderRadius: AppRadius.smBorder,
+            child: _EntryCard(entry: entry),
+          ),
         );
       },
     );
@@ -224,8 +240,166 @@ class _EntryCard extends StatelessWidget {
                   fontWeight: FontWeight.bold,
                 ),
           ),
+          const SizedBox(width: AppSpacing.xs),
+          Icon(
+            Icons.edit_outlined,
+            size: 16,
+            color: colorScheme.onSurfaceVariant,
+          ),
         ],
       ),
+    );
+  }
+
+  String _formatDate(DateTime dt) =>
+      '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')} '
+      '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+}
+
+class _EditEntryDialog extends StatefulWidget {
+  const _EditEntryDialog({required this.entry});
+  final PointEntryDto entry;
+
+  @override
+  State<_EditEntryDialog> createState() => _EditEntryDialogState();
+}
+
+class _EditEntryDialogState extends State<_EditEntryDialog> {
+  final _formKey = GlobalKey<FormState>();
+  final _mainController = TextEditingController();
+  final _pointsController = TextEditingController();
+  final _tagController = TextEditingController();
+  late DateTime _selectedDate;
+
+  bool get _isAddition => widget.entry.type == PointEntryTypeDto.addition;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedDate = widget.entry.dateTime;
+    _mainController.text =
+        (_isAddition ? widget.entry.reason : widget.entry.application) ?? '';
+    _pointsController.text = widget.entry.points.toString();
+    _tagController.text = widget.entry.tag ?? '';
+  }
+
+  @override
+  void dispose() {
+    _mainController.dispose();
+    _pointsController.dispose();
+    _tagController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickDate() async {
+    final date = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate,
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
+    );
+    if (date == null || !mounted) return;
+    final time = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(_selectedDate),
+    );
+    if (time == null) return;
+    setState(() {
+      _selectedDate = DateTime(
+          date.year, date.month, date.day, time.hour, time.minute);
+    });
+  }
+
+  void _save() {
+    if (!_formKey.currentState!.validate()) return;
+    Navigator.of(context).pop(
+      UpdatePointEntryDto(
+        id: widget.entry.id,
+        dateTime: _selectedDate,
+        points: int.parse(_pointsController.text),
+        reason: _isAddition ? _mainController.text.trim() : null,
+        application: _isAddition ? null : _mainController.text.trim(),
+        tag: _tagController.text.trim().isEmpty
+            ? null
+            : _tagController.text.trim(),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text(AppStrings.pointEditTitle),
+      content: SingleChildScrollView(
+        child: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              AppCard(
+                child: ListTile(
+                  dense: true,
+                  leading: const Icon(Icons.calendar_today_outlined),
+                  title: const Text(AppStrings.pointDateTime),
+                  subtitle: Text(_formatDate(_selectedDate)),
+                  onTap: _pickDate,
+                  contentPadding: EdgeInsets.zero,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              TextFormField(
+                controller: _mainController,
+                decoration: InputDecoration(
+                  labelText: _isAddition
+                      ? AppStrings.pointReason
+                      : AppStrings.pointApplication,
+                  border: const OutlineInputBorder(),
+                ),
+                validator: (v) => (v == null || v.trim().isEmpty)
+                    ? (_isAddition
+                        ? AppStrings.pointReasonError
+                        : AppStrings.pointApplicationError)
+                    : null,
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              TextFormField(
+                controller: _pointsController,
+                keyboardType: TextInputType.number,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                decoration: const InputDecoration(
+                  labelText: AppStrings.pointAmount,
+                  border: OutlineInputBorder(),
+                ),
+                validator: (v) =>
+                    (v == null ||
+                            v.isEmpty ||
+                            int.tryParse(v) == null ||
+                            int.parse(v) <= 0)
+                        ? AppStrings.pointAmountError
+                        : null,
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              TextFormField(
+                controller: _tagController,
+                decoration: const InputDecoration(
+                  labelText: AppStrings.pointTag,
+                  border: OutlineInputBorder(),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text(AppStrings.commonCancel),
+        ),
+        TextButton(
+          onPressed: _save,
+          child: const Text(AppStrings.commonSave),
+        ),
+      ],
     );
   }
 

@@ -1,17 +1,25 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutterbase/application/dto/point_entry_dto.dart';
+import 'package:flutterbase/application/dto/update_point_entry_dto.dart';
 import 'package:flutterbase/application/usecases/points/delete_point_entry_usecase.dart';
 import 'package:flutterbase/application/usecases/points/get_point_balance_usecase.dart';
 import 'package:flutterbase/application/usecases/points/get_point_history_usecase.dart';
+import 'package:flutterbase/application/usecases/points/update_point_entry_usecase.dart';
 import 'package:flutterbase/shared/errors/app_error.dart';
 
 enum UserDetailState { loading, loaded, empty, error }
 
 final class UserDetailViewModel extends ChangeNotifier {
-  UserDetailViewModel(this._getHistory, this._getBalance, this._deleteEntry);
+  UserDetailViewModel(
+    this._getHistory,
+    this._getBalance,
+    this._deleteEntry,
+    this._updateEntry,
+  );
   final GetPointHistoryUseCase _getHistory;
   final GetPointBalanceUseCase _getBalance;
   final DeletePointEntryUseCase _deleteEntry;
+  final UpdatePointEntryUseCase _updateEntry;
 
   UserDetailState _state = UserDetailState.loading;
   List<PointEntryDto> _entries = [];
@@ -37,6 +45,19 @@ final class UserDetailViewModel extends ChangeNotifier {
       _error = UnexpectedError('Failed to load point history', cause: e, stackTrace: st);
       _state = UserDetailState.error;
     } finally {
+      notifyListeners();
+    }
+  }
+
+  Future<void> updateEntry(UpdatePointEntryDto dto) async {
+    try {
+      await _updateEntry.execute(dto);
+      if (_currentUserId != null) {
+        await load(_currentUserId!);
+      }
+    } catch (e, st) {
+      _error = UnexpectedError('Failed to update entry', cause: e, stackTrace: st);
+      _state = UserDetailState.error;
       notifyListeners();
     }
   }
