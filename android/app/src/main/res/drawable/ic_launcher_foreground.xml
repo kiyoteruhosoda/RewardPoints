@@ -1,25 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  Adaptive icon foreground: rounded white 5-pointed star.
+  Scaled to fit safe zone (18–90dp) within 108×108 canvas.
+  Outer R=36dp, inner R=24.9dp (ratio 0.69), centre (54,54).
+  C1-continuous cubic beziers — same construction as app_icon.svg.
+-->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-    <!--
-      Adaptive icon foreground: coin + star design.
-      Safe zone: 18dp inset on each side (inner 72×72dp of the 108×108 canvas).
-      Coin circle: R=36 → spans x/y 18–90, exactly the safe-zone boundary.
-      Star: outer R=20, inner R=8.5, centred at (54,54).
-    -->
-
-    <!-- White coin body -->
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M18,54 A36,36 0 0,1 90,54 A36,36 0 0,1 18,54 Z"/>
-
-    <!-- Amber 5-pointed star (outer R=20, inner R=8.5) -->
-    <path
-        android:fillColor="#D97706"
-        android:pathData="M54,34 L59,47.1 L73,47.8 L62.1,56.6 L65.8,70.2 L54,62.5 L42.2,70.2 L45.9,56.6 L35,47.8 L49,47.1 Z"/>
+        android:pathData="
+          M54,18
+          C64.3,18 59.6,27.3 68.6,33.9
+          C77.6,40.4 85.1,33.1 88.2,42.9
+          C91.4,52.7 81.1,51.1 77.6,61.7
+          C74.2,72.2 83.5,77.1 75.2,83.1
+          C66.9,89.2 65.1,78.9 54,78.9
+          C42.9,78.9 41.1,89.2 32.8,83.1
+          C24.5,77.1 33.8,72.2 30.4,61.7
+          C26.9,51.1 16.6,52.7 19.8,42.9
+          C22.9,33.1 30.4,40.4 39.4,33.9
+          C48.4,27.3 43.7,18 54,18 Z"/>
 
 </vector>
