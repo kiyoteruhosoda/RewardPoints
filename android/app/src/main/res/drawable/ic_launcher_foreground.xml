@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!--
+      Adaptive icon foreground: coin + star design.
+      Safe zone: 18dp inset on each side (inner 72×72dp of the 108×108 canvas).
+      Coin circle: R=36 → spans x/y 18–90, exactly the safe-zone boundary.
+      Star: outer R=20, inner R=8.5, centred at (54,54).
+    -->
+
+    <!-- White coin body -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M18,54 A36,36 0 0,1 90,54 A36,36 0 0,1 18,54 Z"/>
+
+    <!-- Amber 5-pointed star (outer R=20, inner R=8.5) -->
+    <path
+        android:fillColor="#D97706"
+        android:pathData="M54,34 L59,47.1 L73,47.8 L62.1,56.6 L65.8,70.2 L54,62.5 L42.2,70.2 L45.9,56.6 L35,47.8 L49,47.1 Z"/>
+
+</vector>

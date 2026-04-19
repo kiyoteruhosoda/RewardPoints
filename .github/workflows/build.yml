@@ -19,21 +19,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Validate required secrets
-        env:
-          FUNC_URL: ${{ secrets.FUNC_URL }}
-          FUNC_STOP_URL: ${{ secrets.FUNC_STOP_URL }}
-          FUNC_STATUS_URL: ${{ secrets.FUNC_STATUS_URL }}
         run: |
           MISSING=""
-          [ -z "$FUNC_URL" ] && MISSING="$MISSING FUNC_URL"
-          [ -z "$FUNC_STOP_URL" ] && MISSING="$MISSING FUNC_STOP_URL"
-          [ -z "$FUNC_STATUS_URL" ] && MISSING="$MISSING FUNC_STATUS_URL"
+          [ -z "${{ secrets.FUNC_URL }}" ]        && MISSING="$MISSING FUNC_URL"
+          [ -z "${{ secrets.FUNC_STOP_URL }}" ]   && MISSING="$MISSING FUNC_STOP_URL"
+          [ -z "${{ secrets.FUNC_STATUS_URL }}" ] && MISSING="$MISSING FUNC_STATUS_URL"
           if [ -n "$MISSING" ]; then
-            echo "ERROR: Required secrets are not configured:$MISSING"
-            echo "Please set these secrets in GitHub repository settings."
+            echo "ERROR: The following required secrets are not set:$MISSING"
             exit 1
           fi
-          echo "All required secrets are configured."
+          echo "All required secrets are present."
 
       - name: Stop any existing ACI Runner
         run: |
@@ -48,7 +43,7 @@ jobs:
             RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
               "${{ secrets.FUNC_URL }}" \
               -H "Content-Type: application/json" \
-              -d "{\"github_repo\": \"${{ github.repository }}\"}" 2>/dev/null) || true
+              -d "{\"github_repo\": \"${{ github.repository }}\"}" || true)
 
             HTTP_CODE=$(echo "$RESPONSE" | tail -1)
             BODY=$(echo "$RESPONSE" | head -1)
@@ -79,7 +74,7 @@ jobs:
 
           for i in $(seq 1 20); do
             echo "--- Attempt $i ---"
-            RESULT=$(curl -s "$STATUS_URL" 2>/dev/null) || true
+            RESULT=$(curl -s "$STATUS_URL" || true)
             STATUS=$(echo $RESULT | jq -r '.status')
             LOGS=$(echo $RESULT | jq -r '.logs')
 
@@ -109,17 +104,7 @@ jobs:
   build:
     needs: start-runner
     runs-on: [self-hosted, flutter, android]
-    timeout-minutes: 30
     steps:
-      - name: Runner diagnostics
-        run: |
-          echo "=== Runner Info ==="
-          echo "Hostname: $(hostname)"
-          echo "Runner name: ${RUNNER_NAME:-unknown}"
-          echo "Runner labels: ${RUNNER_LABELS:-unknown}"
-          echo "Flutter: $(flutter --version 2>&1 | head -1 || echo 'not found')"
-          echo "Java: $(java -version 2>&1 | head -1 || echo 'not found')"
-          echo "Android SDK: ${ANDROID_SDK_ROOT:-${ANDROID_HOME:-not set}}"
       - uses: actions/checkout@v5
         with:
           ref: ${{ github.event.workflow_run.head_branch || github.ref }}
@@ -158,17 +143,23 @@ jobs:
         run: flutter build apk --release --build-number=$(git rev-list --count HEAD)
       - name: Flutter build AAB
         run: flutter build appbundle --release --build-number=$(git rev-list --count HEAD)
+      # Upload the per-app renamed copies written by android/app/build.gradle.
+      # Excludes the generic app-release.{apk,aab} that Flutter CLI requires.
       - name: Upload APK
         uses: actions/upload-artifact@v5
         with:
           name: apk
-          path: build/app/outputs/flutter-apk/app-release.apk
+          path: |
+            build/app/outputs/flutter-apk/*-release.apk
+            !build/app/outputs/flutter-apk/app-release.apk
           retention-days: 30
       - name: Upload AAB
         uses: actions/upload-artifact@v5
         with:
           name: aab
-          path: build/app/outputs/bundle/release/app-release.aab
+          path: |
+            build/app/outputs/bundle/release/*-release.aab
+            !build/app/outputs/bundle/release/app-release.aab
           retention-days: 30
 
   stop-runner:
@@ -179,7 +170,7 @@ jobs:
       - name: Stop ACI
         run: |
           RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
-            "${{ secrets.FUNC_STOP_URL }}")
+            "${{ secrets.FUNC_STOP_URL }}" || true)
 
           HTTP_CODE=$(echo "$RESPONSE" | tail -1)
           BODY=$(echo "$RESPONSE" | head -1)
