@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <radialGradient id="sg" cx="44%" cy="30%" r="65%" fx="44%" fy="30%">
+      <stop offset="0%"   stop-color="#FFEE58"/>
+      <stop offset="35%"  stop-color="#FFC107"/>
+      <stop offset="70%"  stop-color="#FF8F00"/>
+      <stop offset="100%" stop-color="#E65100"/>
+    </radialGradient>
+    <radialGradient id="hi" cx="35%" cy="18%" r="46%">
+      <stop offset="0%"   stop-color="#FFFFFF" stop-opacity="0.70"/>
+      <stop offset="60%"  stop-color="#FFFFFF" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+    <!-- Puffy filter: blur alpha → threshold → clip gradient to rounded shape -->
+    <filter id="puffy" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="13" result="b"/>
+      <feColorMatrix in="b" type="matrix"
+        values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 32 -11"
+        result="m"/>
+      <feComposite in="SourceGraphic" in2="m" operator="in"/>
+    </filter>
+    <!-- Soft glow for sparkles -->
+    <filter id="glow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="g"/>
+      <feMerge><feMergeNode in="g"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="512" height="512" fill="#080808"/>
+
+  <!-- Star body -->
+  <path d="M256,68 L316,178 L435,200 L351,288 L366,408 L256,348 L146,408 L161,288 L77,200 L196,178 Z"
+        fill="url(#sg)" filter="url(#puffy)"/>
+
+  <!-- Bottom depth shadow -->
+  <ellipse cx="256" cy="352" rx="110" ry="28" fill="#BF360C" opacity="0.28"/>
+
+  <!-- Gloss highlight top-left -->
+  <ellipse cx="218" cy="168" rx="96" ry="62" fill="url(#hi)"/>
+
+  <!-- Cheeks -->
+  <ellipse cx="194" cy="292" rx="35" ry="22" fill="#FF6D00" opacity="0.38"/>
+  <ellipse cx="318" cy="292" rx="35" ry="22" fill="#FF6D00" opacity="0.38"/>
+
+  <!-- Eyes -->
+  <ellipse cx="211" cy="262" rx="14" ry="15" fill="#3E2723"/>
+  <circle  cx="218" cy="255" r="5.5" fill="#FFFFFF"/>
+  <ellipse cx="301" cy="262" rx="14" ry="15" fill="#3E2723"/>
+  <circle  cx="308" cy="255" r="5.5" fill="#FFFFFF"/>
+
+  <!-- Smile -->
+  <path d="M221,297 Q256,336 291,297"
+        stroke="#3E2723" stroke-width="10" fill="none" stroke-linecap="round"/>
+
+  <!-- Sparkles -->
+  <g filter="url(#glow)">
+    <path d="M374,90 L379,108 L397,113 L379,118 L374,136 L369,118 L351,113 L369,108 Z"
+          fill="#FFE082"/>
+    <path d="M414,144 L416.8,152.5 L425.3,155.3 L416.8,158 L414,166.5 L411.2,158 L402.7,155.3 L411.2,152.5 Z"
+          fill="#FFE082" opacity="0.90"/>
+    <path d="M107,338 L111,350 L123,354 L111,358 L107,370 L103,358 L91,354 L103,350 Z"
+          fill="#FFE082" opacity="0.88"/>
+  </g>
+  <circle cx="83"  cy="305" r="5.5" fill="#FFE082" opacity="0.62"/>
+  <circle cx="91"  cy="372" r="3"   fill="#FFE082" opacity="0.48"/>
+</svg>

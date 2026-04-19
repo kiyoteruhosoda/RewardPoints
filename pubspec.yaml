@@ -1,7 +1,7 @@
 name: rewardpoints
 description: デジタル庁デザインシステムを使ったベースFlutterアプリ
 publish_to: "none"
-version: 1.6.1+41
+version: 1.5.1+34
 
 environment:
   sdk: ">=3.2.0 <4.0.0"
@@ -53,9 +53,6 @@ dev_dependencies:
   riverpod_generator: ^2.4.3
   mockito: ^5.4.4
   sqflite_common_ffi: ^2.3.3
-  # 0.13.x fails on Dart SDK >=3.3 during adaptive-icon generation
-  # (silently skips mipmap-anydpi-v26 output). 0.14+ also unlocks the
-  # `adaptive_icon_monochrome` knob used for Android 13+ themed icons.
   flutter_launcher_icons: ^0.14.3
 
 flutter:
@@ -71,15 +68,13 @@ flutter:
         - asset: assets/fonts/NotoSansJP-Bold.ttf
           weight: 700
 
-# Launcher-icon generation (PNG fallbacks for Android < 8.0).
-# Run:  dart run flutter_launcher_icons
-# Android 8+ uses the vector adaptive icon in mipmap-anydpi-v26/ directly.
+# Run: dart run flutter_launcher_icons
+# Android 8+ uses the vector drawable in mipmap-anydpi-v26/ directly.
 flutter_launcher_icons:
   android: "ic_launcher"
   image_path: "assets/icon/app_icon.png"
-  # Amber/gold — keep in sync with values/colors.xml@ic_launcher_background.
-  adaptive_icon_background: "#F59E0B"
+  # Deep amber — keep in sync with values/colors.xml@ic_launcher_background.
+  adaptive_icon_background: "#FF8F00"
   adaptive_icon_foreground: "assets/icon/app_icon.png"
   adaptive_icon_monochrome: "assets/icon/app_icon.png"
   min_sdk_android: 21
-  # ios section intentionally omitted — no ios/ directory yet.
