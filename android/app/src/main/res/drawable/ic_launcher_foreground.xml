@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
   Adaptive icon foreground: white 5-pointed star.
-  Safe zone: 18dp inset on each side (72×72 inner area of the 108×108 canvas).
-  Outer R=31, inner R=15, centre (54,54).
+  Outer R=32, inner R=13, centre (54,54) in 108×108 canvas.
+  Safe zone: 18dp inset on each side.
 -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
@@ -12,6 +12,6 @@
 
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M54,23 L62.8,41.9 L83.5,44.4 L68.3,58.6 L72.2,79.1 L54,69 L35.8,79.1 L39.7,58.6 L24.5,44.4 L45.2,41.9 Z"/>
+        android:pathData="M54,22 L61.6,43.5 L84.4,44.1 L66.4,58 L72.8,79.9 L54,67 L35.2,79.9 L41.6,58 L23.6,44.1 L46.4,43.5 Z"/>
 
 </vector>
