@@ -35,5 +35,10 @@ jobs:
           VERSION="v${{ steps.bump.outputs.new_version }}"
           git add pubspec.yaml
           git commit -m "chore: bump version to ${{ steps.bump.outputs.new_version_full }}"
-          git tag "$VERSION"
-          git push origin main --tags
+          if git rev-parse "refs/tags/$VERSION" >/dev/null 2>&1; then
+            echo "Tag $VERSION already exists, skipping tag creation."
+            git push origin main
+          else
+            git tag "$VERSION"
+            git push origin main --tags
+          fi
