@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+      Adaptive launcher icon background colour.
+      Amber/gold — evokes coins and reward points.
+      Keep in sync with pubspec.yaml > flutter_launcher_icons.adaptive_icon_background.
+    -->
+    <color name="ic_launcher_background">#F59E0B</color>
+</resources>

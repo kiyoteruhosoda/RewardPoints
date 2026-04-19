@@ -71,22 +71,15 @@ flutter:
         - asset: assets/fonts/NotoSansJP-Bold.ttf
           weight: 700
 
-# Launcher-icon generation.
-# Regenerate after editing by running:
-#   dart run flutter_launcher_icons
-# The generated PNGs under android/app/src/main/res/mipmap-*/ and
-# mipmap-anydpi-v26/ic_launcher.xml should be committed.
+# Launcher-icon generation (PNG fallbacks for Android < 8.0).
+# Run:  dart run flutter_launcher_icons
+# Android 8+ uses the vector adaptive icon in mipmap-anydpi-v26/ directly.
 flutter_launcher_icons:
   android: "ic_launcher"
   image_path: "assets/icon/app_icon.png"
-  # Brand colour — keep in sync with AppColors.brand (AppColors.blue800)
-  # and res/values/colors.xml@ic_launcher_background.
-  adaptive_icon_background: "#264AF4"
+  # Amber/gold — keep in sync with values/colors.xml@ic_launcher_background.
+  adaptive_icon_background: "#F59E0B"
   adaptive_icon_foreground: "assets/icon/app_icon.png"
-  # Android 13+ themed icons (requires flutter_launcher_icons >=0.14).
   adaptive_icon_monochrome: "assets/icon/app_icon.png"
   min_sdk_android: 21
   # ios section intentionally omitted — no ios/ directory yet.
-  # When iOS is added, re-enable with:
-  #   ios: true
-  #   remove_alpha_ios: true
