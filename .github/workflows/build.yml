@@ -143,23 +143,17 @@ jobs:
         run: flutter build apk --release --build-number=$(git rev-list --count HEAD)
       - name: Flutter build AAB
         run: flutter build appbundle --release --build-number=$(git rev-list --count HEAD)
-      # Upload the per-app renamed copies written by android/app/build.gradle.
-      # Excludes the generic app-release.{apk,aab} that Flutter CLI requires.
       - name: Upload APK
         uses: actions/upload-artifact@v5
         with:
           name: apk
-          path: |
-            build/app/outputs/flutter-apk/*-release.apk
-            !build/app/outputs/flutter-apk/app-release.apk
+          path: build/app/outputs/flutter-apk/app-release.apk
           retention-days: 30
       - name: Upload AAB
         uses: actions/upload-artifact@v5
         with:
           name: aab
-          path: |
-            build/app/outputs/bundle/release/*-release.aab
-            !build/app/outputs/bundle/release/app-release.aab
+          path: build/app/outputs/bundle/release/app-release.aab
           retention-days: 30
 
   stop-runner:
