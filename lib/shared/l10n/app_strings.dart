@@ -198,9 +198,9 @@ class AppStrings {
   static const String dataTitle = 'Data';
   static const String dataExportTitle = 'Export';
   static const String dataExportDesc =
-      'Share all users and point history as a JSON file. '
-      'Choose where to save it from the share sheet.';
-  static const String dataExportButton = 'Export & Share';
+      'Export all users and point history as a JSON file. '
+      'On Android, it is saved to the public Downloads folder so it can be shared from other apps.';
+  static const String dataExportButton = 'Export JSON';
   static const String dataExportSuccess = 'Export ready';
   static const String dataImportTitle = 'Import';
   static const String dataImportDesc =

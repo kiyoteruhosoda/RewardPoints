@@ -19,6 +19,10 @@ Two defences already in the repo:
 - CI (`.github/workflows/build.yml`) decodes `KEYSTORE_BASE64` to
   `android/app/release.keystore` and writes `android/key.properties` before
   `flutter build apk --release`.
+- `android/app/build.gradle` now **fails fast** when a release task runs
+  without `android/key.properties`, instead of silently signing with a debug
+  key. This prevents shipping an APK that installs with "App not installed"
+  on top of an existing release app.
 
 For a local release APK that updates the CI-built app cleanly, reuse the same
 keystore.
@@ -45,8 +49,7 @@ keystore.
    `--build-number` overrides the `+N` suffix in `pubspec.yaml:version`, so the
    `versionCode` always moves forward with commits.
 
-Without `key.properties`, release builds fall back to the debug keystore; that
-APK cannot update a CI release install.
+Without `key.properties`, release builds are blocked with an explicit error.
 
 ## Generating a keystore (one-off)
 

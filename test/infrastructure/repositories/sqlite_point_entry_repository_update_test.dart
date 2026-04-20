@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:rewardpoints/domain/entities/point_entry.dart';
+import 'package:rewardpoints/domain/value_objects/point_entry_id.dart';
 import 'package:rewardpoints/infrastructure/db/sqlite/dao/point_entry_dao.dart';
 import 'package:rewardpoints/infrastructure/db/sqlite/dao/user_dao.dart';
 import 'package:rewardpoints/infrastructure/db/sqlite/migrations/migration_v1.dart';
@@ -79,5 +80,49 @@ void main() {
     expect(updated.points, 30);
     expect(updated.application, 'Gift');
     expect(updated.tag, isNull);
+  });
+
+  test('addition update keeps existing reason when caller omits it', () async {
+    final user = await userRepo.create('Charlie');
+    final created = await pointRepo.addPoints(
+      userId: user.id,
+      dateTime: DateTime(2026, 4, 20, 9, 0),
+      points: 20,
+      reason: 'Carry over',
+      tag: 'seed',
+    );
+
+    await pointRepo.update(
+      created.id,
+      dateTime: DateTime(2026, 4, 20, 9, 30),
+      points: 25,
+      reason: null,
+      tag: 'updated',
+    );
+
+    final rows = await pointRepo.getByUserId(user.id);
+    final updated = rows.single as PointAddition;
+    expect(updated.reason, 'Carry over');
+    expect(updated.points, 25);
+  });
+
+  test('throws StateError when updating unknown id', () async {
+    final user = await userRepo.create('Dana');
+    await pointRepo.addPoints(
+      userId: user.id,
+      dateTime: DateTime(2026, 4, 20, 8, 0),
+      points: 10,
+      reason: 'Init',
+    );
+
+    expect(
+      () => pointRepo.update(
+        const PointEntryId(999999),
+        dateTime: DateTime(2026, 4, 20, 8, 30),
+        points: 15,
+        reason: 'Edited',
+      ),
+      throwsA(isA<StateError>()),
+    );
   });
 }

@@ -1,19 +1,17 @@
-import 'dart:convert';
-import 'dart:typed_data';
-
 import 'package:flutter/foundation.dart';
 import 'package:rewardpoints/application/usecases/data/export_data_usecase.dart';
 import 'package:rewardpoints/application/usecases/data/import_data_usecase.dart';
-import 'package:share_plus/share_plus.dart';
+import 'package:rewardpoints/infrastructure/files/export_file_writer.dart';
 import 'package:rewardpoints/shared/errors/app_error.dart';
 
 enum ExportImportState { idle, loading, success, error }
 
 final class ExportImportViewModel extends ChangeNotifier {
-  ExportImportViewModel(this._export, this._import);
+  ExportImportViewModel(this._export, this._import, this._fileWriter);
 
   final ExportDataUseCase _export;
   final ImportDataUseCase _import;
+  final ExportFileWriter _fileWriter;
 
   ExportImportState _state = ExportImportState.idle;
   AppError? _error;
@@ -29,17 +27,11 @@ final class ExportImportViewModel extends ChangeNotifier {
     notifyListeners();
     try {
       final result = await _export.execute();
-      final bytes = Uint8List.fromList(utf8.encode(result.json));
-      final xFile = XFile.fromData(
-        bytes,
-        mimeType: 'application/json',
-        name: result.suggestedFileName,
+      final savedLocation = await _fileWriter.saveJson(
+        suggestedFileName: result.suggestedFileName,
+        json: result.json,
       );
-      await Share.shareXFiles(
-        [xFile],
-        subject: result.suggestedFileName,
-      );
-      _lastMessage = result.suggestedFileName;
+      _lastMessage = savedLocation;
       _state = ExportImportState.success;
     } catch (e, st) {
       _error = UnexpectedError('Export failed', cause: e, stackTrace: st);

@@ -28,6 +28,7 @@ import 'package:rewardpoints/domain/repositories/user_repository.dart';
 import 'package:rewardpoints/infrastructure/db/sqlite/app_database.dart';
 import 'package:rewardpoints/infrastructure/db/sqlite/dao/point_entry_dao.dart';
 import 'package:rewardpoints/infrastructure/db/sqlite/dao/user_dao.dart';
+import 'package:rewardpoints/infrastructure/files/export_file_writer.dart';
 import 'package:rewardpoints/infrastructure/logging/persistent_app_logger.dart';
 import 'package:rewardpoints/infrastructure/repositories/package_info_app_info_repository.dart';
 import 'package:rewardpoints/infrastructure/repositories/shared_preferences_debug_settings_repository.dart';
@@ -132,6 +133,7 @@ Future<void> setupServiceLocator() async {
   sl.registerSingleton<PointEntryRepository>(
     SqlitePointEntryRepository(pointEntryDao),
   );
+  sl.registerSingleton<ExportFileWriter>(PlatformExportFileWriter());
 
   // ─── Application (UseCases) ─────────────────────────────────────────
   sl.registerFactory<CreateUserUseCase>(
@@ -197,7 +199,11 @@ Future<void> setupServiceLocator() async {
     () => ConsumePointsViewModel(sl<ConsumePointsUseCase>(), sl<GetPastApplicationsUseCase>()),
   );
   sl.registerFactory<ExportImportViewModel>(
-    () => ExportImportViewModel(sl<ExportDataUseCase>(), sl<ImportDataUseCase>()),
+    () => ExportImportViewModel(
+      sl<ExportDataUseCase>(),
+      sl<ImportDataUseCase>(),
+      sl<ExportFileWriter>(),
+    ),
   );
 
   sl<AppLogger>().info('[DI] Service locator setup complete');

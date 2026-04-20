@@ -21,7 +21,18 @@ final class PointEntryDao {
     return _db.insert(table, map);
   }
 
-  Future<void> update({
+  Future<PointEntryRow?> getById(int id) async {
+    final rows = await _db.query(
+      table,
+      where: 'id = ?',
+      whereArgs: [id],
+      limit: 1,
+    );
+    if (rows.isEmpty) return null;
+    return PointEntryRow.fromMap(rows.first);
+  }
+
+  Future<int> update({
     required int id,
     required String dateTime,
     required int points,
@@ -29,7 +40,7 @@ final class PointEntryDao {
     String? application,
     String? tag,
   }) async {
-    await _db.update(
+    return _db.update(
       table,
       {
         'date_time': dateTime,

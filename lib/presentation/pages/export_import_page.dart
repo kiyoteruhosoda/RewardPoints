@@ -108,7 +108,8 @@ class _ExportImportPageState extends State<ExportImportPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-              '${AppStrings.dataExportSuccess}: ${_viewModel.lastMessage ?? ''}'),
+            '${AppStrings.dataExportSuccess}: ${_viewModel.lastMessage ?? ''}',
+          ),
         ),
       );
       _viewModel.reset();

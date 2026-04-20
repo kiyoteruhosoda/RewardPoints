@@ -81,14 +81,54 @@ final class SqlitePointEntryRepository implements PointEntryRepository {
     String? application,
     String? tag,
   }) async {
-    await _dao.update(
+    final current = await _dao.getById(id.value);
+    if (current == null) {
+      throw StateError('Point entry not found: ${id.value}');
+    }
+
+    final resolved = switch (current.type) {
+      'addition' => (
+          reason: _resolveRequiredText(
+            nextValue: reason,
+            currentValue: current.reason,
+            fieldName: 'reason',
+          ),
+          application: null,
+        ),
+      'consumption' => (
+          reason: null,
+          application: _resolveRequiredText(
+            nextValue: application,
+            currentValue: current.application,
+            fieldName: 'application',
+          ),
+        ),
+      _ => throw StateError('Unsupported point entry type: ${current.type}'),
+    };
+
+    final updatedCount = await _dao.update(
       id: id.value,
       dateTime: dateTime.toIso8601String(),
       points: points,
-      reason: reason,
-      application: application,
+      reason: resolved.reason,
+      application: resolved.application,
       tag: tag,
     );
+    if (updatedCount == 0) {
+      throw StateError('Point entry update failed: ${id.value}');
+    }
+  }
+
+  String _resolveRequiredText({
+    required String? nextValue,
+    required String? currentValue,
+    required String fieldName,
+  }) {
+    final candidate = (nextValue ?? currentValue ?? '').trim();
+    if (candidate.isEmpty) {
+      throw ArgumentError('$fieldName must not be empty');
+    }
+    return candidate;
   }
 
   @override
