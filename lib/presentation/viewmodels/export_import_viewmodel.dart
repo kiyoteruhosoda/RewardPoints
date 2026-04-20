@@ -1,27 +1,20 @@
-import 'dart:io';
+import 'dart:convert';
+import 'dart:typed_data';
 
+import 'package:file_saver/file_saver.dart';
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
 import 'package:rewardpoints/application/usecases/data/export_data_usecase.dart';
 import 'package:rewardpoints/application/usecases/data/import_data_usecase.dart';
 import 'package:rewardpoints/shared/errors/app_error.dart';
-import 'package:share_plus/share_plus.dart';
 
 enum ExportImportState { idle, loading, success, error }
 
-typedef ShareFilesFn = Future<ShareResult> Function(List<XFile> files);
-
 final class ExportImportViewModel extends ChangeNotifier {
-  ExportImportViewModel(
-    this._export,
-    this._import, {
-    ShareFilesFn? shareFiles,
-  }) : _shareFiles = shareFiles ?? _defaultShareFiles;
+  ExportImportViewModel(this._export, this._import);
 
   final ExportDataUseCase _export;
   final ImportDataUseCase _import;
-  final ShareFilesFn _shareFiles;
 
   ExportImportState _state = ExportImportState.idle;
   AppError? _error;
@@ -31,21 +24,19 @@ final class ExportImportViewModel extends ChangeNotifier {
   AppError? get error => _error;
   String? get lastMessage => _lastMessage;
 
-  static Future<ShareResult> _defaultShareFiles(List<XFile> files) =>
-      Share.shareXFiles(files);
-
   Future<void> exportData() async {
     _state = ExportImportState.loading;
     _error = null;
     notifyListeners();
     try {
       final result = await _export.execute();
-      final dir = await getTemporaryDirectory();
-      final file = File(p.join(dir.path, result.suggestedFileName));
-      await file.writeAsString(result.json);
-      await _shareFiles([
-        XFile(file.path, mimeType: 'application/json', name: result.suggestedFileName),
-      ]);
+      final name = p.basenameWithoutExtension(result.suggestedFileName);
+      await FileSaver.instance.saveFile(
+        name: name,
+        bytes: Uint8List.fromList(utf8.encode(result.json)),
+        ext: 'json',
+        mimeType: MimeType.json,
+      );
       _lastMessage = result.suggestedFileName;
       _state = ExportImportState.success;
     } catch (e, st) {

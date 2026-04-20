@@ -43,8 +43,8 @@ dependencies:
   # Equatable (value objects)
   equatable: ^2.0.5
 
-  # Sharing (export flow) and file picking (import flow)
-  share_plus: ^10.0.0
+  # File saving (export flow) and file picking (import flow)
+  file_saver: ^2.1.0
   file_picker: ^8.0.0
 
 dev_dependencies:
