@@ -36,6 +36,9 @@ def hasKeystore = keystoreProperties.getProperty("storeFile") != null
 android {
     namespace = "com.nolumia.rewardpoints"
     compileSdk = flutter.compileSdkVersion
+    // integration_test requires NDK 26.3.11579264; pin here so all
+    // plugins resolve to the same (highest) version.
+    ndkVersion = "26.3.11579264"
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
