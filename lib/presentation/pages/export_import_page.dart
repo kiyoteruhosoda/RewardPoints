@@ -10,11 +10,7 @@ import 'package:rewardpoints/shared/l10n/app_strings.dart';
 import 'package:rewardpoints/shared/theme/theme.dart';
 
 class ExportImportPage extends StatefulWidget {
-  const ExportImportPage({super.key, this.initialImportJson});
-
-  /// When launched via a JSON file VIEW intent, the intent handler
-  /// passes the decoded file content here so the import runs on load.
-  final String? initialImportJson;
+  const ExportImportPage({super.key});
 
   @override
   State<ExportImportPage> createState() => _ExportImportPageState();
@@ -28,12 +24,6 @@ class _ExportImportPageState extends State<ExportImportPage> {
     super.initState();
     _viewModel = sl<ExportImportViewModel>();
     _viewModel.addListener(_onChanged);
-    final incoming = widget.initialImportJson;
-    if (incoming != null && incoming.isNotEmpty) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _runImport(incoming);
-      });
-    }
   }
 
   @override

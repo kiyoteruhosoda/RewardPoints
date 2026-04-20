@@ -20,23 +20,6 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
-            <!-- Open .json files from Files/Drive/etc. Two filters:
-                 one matches by mimeType (content:// with application/json),
-                 one matches by file extension for providers that don't send the mimeType. -->
-            <intent-filter>
-                <action android:name="android.intent.action.VIEW"/>
-                <category android:name="android.intent.category.DEFAULT"/>
-                <category android:name="android.intent.category.BROWSABLE"/>
-                <data android:scheme="content" android:mimeType="application/json"/>
-                <data android:scheme="file"    android:mimeType="application/json"/>
-            </intent-filter>
-            <intent-filter>
-                <action android:name="android.intent.action.VIEW"/>
-                <category android:name="android.intent.category.DEFAULT"/>
-                <category android:name="android.intent.category.BROWSABLE"/>
-                <data android:scheme="content" android:host="*" android:pathPattern=".*\\.json"/>
-                <data android:scheme="file"    android:host="*" android:pathPattern=".*\\.json"/>
-            </intent-filter>
         </activity>
         <meta-data
             android:name="flutterEmbedding"
