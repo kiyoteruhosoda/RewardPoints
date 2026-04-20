@@ -12,14 +12,13 @@ subprojects {
 }
 subprojects {
     project.evaluationDependsOn(":app")
-}
 
-// Force every Android subproject (including Flutter plugins such as
-// receive_sharing_intent) to compile Java/Kotlin with JDK 17 so their
-// compileReleaseJavaWithJavac and compileReleaseKotlin tasks agree on
-// jvmTarget. Without this some plugins leave Java at 1.8 while their
-// Kotlin code compiles to 17 and Gradle fails the build.
-subprojects {
+    // Force every Android subproject (including Flutter plugins such as
+    // receive_sharing_intent) to compile Java/Kotlin with JDK 17 so their
+    // compileReleaseJavaWithJavac and compileReleaseKotlin tasks agree on
+    // jvmTarget. Registering afterEvaluate here (inside the same
+    // subprojects block as evaluationDependsOn) avoids "already evaluated"
+    // errors for :app.
     afterEvaluate { project ->
         if (project.plugins.hasPlugin("com.android.application") ||
             project.plugins.hasPlugin("com.android.library")) {
