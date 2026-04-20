@@ -35,13 +35,19 @@ def hasKeystore = keystoreProperties.getProperty("storeFile") != null
 def isReleaseBuildRequested = gradle.startParameter.taskNames.any {
     it.toLowerCase().contains("release")
 }
+def requireReleaseKeystore =
+    (System.getenv("REQUIRE_RELEASE_KEYSTORE") ?: "false").toBoolean()
 
-if (isReleaseBuildRequested && !hasKeystore) {
+if (isReleaseBuildRequested && !hasKeystore && requireReleaseKeystore) {
     throw new GradleException(
         "Release build requires android/key.properties and a matching release keystore. " +
         "Without it, generated APK cannot update an already installed release app (App not installed). " +
-        "See docs/signing.md."
+        "Set REQUIRE_RELEASE_KEYSTORE=false to allow debug-signed release builds. See docs/signing.md."
     )
+}
+
+if (isReleaseBuildRequested && !hasKeystore && !requireReleaseKeystore) {
+    println("[signing] WARNING: android/key.properties not found. Building debug-signed release APK.")
 }
 
 android {
