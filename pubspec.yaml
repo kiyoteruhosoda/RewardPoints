@@ -44,7 +44,7 @@ dependencies:
   equatable: ^2.0.5
 
   # File saving (export flow) and file picking (import flow)
-  file_saver: ^2.1.0
+  file_saver: ^0.3.1
   file_picker: ^8.0.0
 
 dev_dependencies:
