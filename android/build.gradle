@@ -12,27 +12,22 @@ subprojects {
 }
 subprojects {
     project.evaluationDependsOn(":app")
+}
 
-    // Force every Android subproject (including Flutter plugins such as
-    // receive_sharing_intent) to compile Java/Kotlin with JDK 17 so their
-    // compileReleaseJavaWithJavac and compileReleaseKotlin tasks agree on
-    // jvmTarget. Registering afterEvaluate here (inside the same
-    // subprojects block as evaluationDependsOn) avoids "already evaluated"
-    // errors for :app.
-    afterEvaluate { project ->
-        if (project.plugins.hasPlugin("com.android.application") ||
-            project.plugins.hasPlugin("com.android.library")) {
-            project.android {
-                compileOptions {
-                    sourceCompatibility JavaVersion.VERSION_17
-                    targetCompatibility JavaVersion.VERSION_17
-                }
-            }
-        }
-        project.tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
-            kotlinOptions {
-                jvmTarget = "17"
-            }
+// Force every Android subproject (including Flutter plugins such as
+// receive_sharing_intent) to compile Java/Kotlin with JDK 17 so their
+// compileReleaseJavaWithJavac and compileReleaseKotlin tasks agree on
+// jvmTarget. Configure the compile tasks directly via configureEach —
+// afterEvaluate hooks race against :app being force-evaluated by
+// evaluationDependsOn and fail with "already evaluated".
+subprojects {
+    tasks.withType(JavaCompile).configureEach {
+        sourceCompatibility = JavaVersion.VERSION_17.toString()
+        targetCompatibility = JavaVersion.VERSION_17.toString()
+    }
+    tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+        kotlinOptions {
+            jvmTarget = "17"
         }
     }
 }
