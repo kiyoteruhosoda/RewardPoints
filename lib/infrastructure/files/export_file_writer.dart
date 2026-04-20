@@ -32,7 +32,7 @@ final class PlatformExportFileWriter implements ExportFileWriter {
         },
       );
       if (savedUri == null || savedUri.isEmpty) {
-        throw const PlatformException(
+        throw PlatformException(
           code: 'save_failed',
           message: 'Failed to save file to Downloads.',
         );
