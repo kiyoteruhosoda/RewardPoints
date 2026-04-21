@@ -94,9 +94,9 @@ android {
             versionNameSuffix "-debug"
         }
         release {
-            if (hasKeystore) {
-                signingConfig = signingConfigs.release
-            }
+            // Always produce an installable APK: if no release keystore is
+            // configured, explicitly fall back to debug signing.
+            signingConfig = hasKeystore ? signingConfigs.release : signingConfigs.debug
         }
     }
 }

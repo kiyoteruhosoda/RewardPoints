@@ -50,8 +50,13 @@ keystore.
    `--build-number` overrides the `+N` suffix in `pubspec.yaml:version`, so the
    `versionCode` always moves forward with commits.
 
-Without `key.properties`, release builds use debug signing unless
-`REQUIRE_RELEASE_KEYSTORE=true` is set.
+Without `key.properties`, release builds explicitly use the debug signing
+config unless `REQUIRE_RELEASE_KEYSTORE=true` is set.
+
+If you saw `INSTALL_PARSE_FAILED_NO_CERTIFICATES`, it means the APK was
+unsigned/corrupted at install time. The current `build.gradle` now forces
+release builds to always be signed (release key if present, otherwise debug key)
+to avoid generating a non-installable unsigned release APK.
 
 ### Recommended CI policy
 
@@ -80,13 +85,21 @@ If Android keeps showing **"App not installed"** even after uninstalling, run:
 dart run scripts/android_install_recovery.dart
 ```
 
+複数デバイス接続時は次を使用:
+
+```
+ANDROID_SERIAL=<device-serial> dart run scripts/android_install_recovery.dart
+```
+
 What this script does:
 
 - Verifies `adb` and connected devices
+- If multiple devices are connected, requires `ANDROID_SERIAL` to select target
 - Uninstalls both package IDs used in this repo
   - `com.nolumia.rewardpoints` (release)
   - `com.nolumia.rewardpoints.debug` (debug)
 - Abandons stale package installer sessions (`pm install-abandon`)
+- Returns non-zero exit code when non-ignorable recovery steps fail
 
 Then run:
 
