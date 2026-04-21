@@ -38,21 +38,35 @@ final class ProcessCommandRunner implements CommandRunner {
 
   @override
   Future<CommandResult> run(List<String> command) async {
-    final processResult = await Process.run(
-      command.first,
-      command.skip(1).toList(growable: false),
-      runInShell: false,
-    );
+    try {
+      final processResult = await Process.run(
+        command.first,
+        command.skip(1).toList(growable: false),
+        runInShell: false,
+      );
 
-    final stdoutText = (processResult.stdout as Object?)?.toString() ?? '';
-    final stderrText = (processResult.stderr as Object?)?.toString() ?? '';
+      final stdoutText = (processResult.stdout as Object?)?.toString() ?? '';
+      final stderrText = (processResult.stderr as Object?)?.toString() ?? '';
 
-    if (processResult.exitCode == 0) {
-      return CommandSuccess(stdoutText.trim(), stderrText.trim());
+      if (processResult.exitCode == 0) {
+        return CommandSuccess(stdoutText.trim(), stderrText.trim());
+      }
+
+      return CommandFailure(processResult.exitCode, stdoutText.trim(), stderrText.trim());
+    } on ProcessException catch (error) {
+      return CommandFailure(
+        -1,
+        '',
+        'Failed to start `${command.join(' ')}`: ${error.message}',
+      );
     }
-
-    return CommandFailure(processResult.exitCode, stdoutText.trim(), stderrText.trim());
   }
+}
+
+final class DeviceSerial {
+  const DeviceSerial(this.value);
+
+  final String value;
 }
 
 final class AndroidPackage {
@@ -72,13 +86,19 @@ final class InstallSession {
 abstract interface class InstallRecoveryPort {
   Future<bool> canUseAdb();
 
-  Future<List<String>> connectedDevices();
+  Future<List<DeviceSerial>> connectedDevices();
 
-  Future<CommandResult> uninstall(AndroidPackage package);
+  Future<CommandResult> uninstall({
+    required DeviceSerial device,
+    required AndroidPackage package,
+  });
 
-  Future<List<InstallSession>> listSessions();
+  Future<CommandResult> listSessions({required DeviceSerial device});
 
-  Future<CommandResult> abandonSession(InstallSession session);
+  Future<CommandResult> abandonSession({
+    required DeviceSerial device,
+    required InstallSession session,
+  });
 }
 
 final class AdbInstallRecoveryAdapter implements InstallRecoveryPort {
@@ -93,48 +113,54 @@ final class AdbInstallRecoveryAdapter implements InstallRecoveryPort {
   }
 
   @override
-  Future<List<String>> connectedDevices() async {
+  Future<List<DeviceSerial>> connectedDevices() async {
     final result = await _runner.run(const ['adb', 'devices']);
     if (result case final CommandSuccess success) {
       return LineSplitter.split(success.stdoutText)
           .skip(1)
           .map((line) => line.trim())
           .where((line) => line.isNotEmpty && line.endsWith('\tdevice'))
-          .map((line) => line.split('\t').first)
+          .map((line) => DeviceSerial(line.split('\t').first))
           .toList(growable: false);
     }
     return const [];
   }
 
   @override
-  Future<CommandResult> uninstall(AndroidPackage package) {
-    return _runner.run(['adb', 'uninstall', package.id]);
+  Future<CommandResult> uninstall({
+    required DeviceSerial device,
+    required AndroidPackage package,
+  }) {
+    return _runner.run(['adb', '-s', device.value, 'uninstall', package.id]);
   }
 
   @override
-  Future<List<InstallSession>> listSessions() async {
-    final result = await _runner.run(const ['adb', 'shell', 'pm', 'list', 'install-sessions']);
-    if (result case final CommandSuccess success) {
-      final sessions = <InstallSession>[];
-      final regex = RegExp(r'sessionId=(\d+)');
-      for (final line in LineSplitter.split(success.stdoutText)) {
-        final match = regex.firstMatch(line);
-        if (match == null) {
-          continue;
-        }
-        final id = int.tryParse(match.group(1) ?? '');
-        if (id != null) {
-          sessions.add(InstallSession(id, line.trim()));
-        }
-      }
-      return sessions;
-    }
-    return const [];
+  Future<CommandResult> listSessions({required DeviceSerial device}) {
+    return _runner.run([
+      'adb',
+      '-s',
+      device.value,
+      'shell',
+      'pm',
+      'list',
+      'install-sessions',
+    ]);
   }
 
   @override
-  Future<CommandResult> abandonSession(InstallSession session) {
-    return _runner.run(['adb', 'shell', 'pm', 'install-abandon', '${session.id}']);
+  Future<CommandResult> abandonSession({
+    required DeviceSerial device,
+    required InstallSession session,
+  }) {
+    return _runner.run([
+      'adb',
+      '-s',
+      device.value,
+      'shell',
+      'pm',
+      'install-abandon',
+      '${session.id}',
+    ]);
   }
 }
 
@@ -160,11 +186,18 @@ final class InstallRecoveryService {
       return 1;
     }
 
-    stdout.writeln('🔎 接続デバイス: ${devices.join(', ')}');
+    final targetDevice = _resolveTargetDevice(devices);
+    if (targetDevice == null) {
+      return 1;
+    }
+
+    stdout.writeln('🔎 対象デバイス: ${targetDevice.value}');
     stdout.writeln('🧹 パッケージ削除を実行します...');
 
+    var hasNonIgnorableFailure = false;
+
     for (final package in _targetPackages) {
-      final result = await _port.uninstall(package);
+      final result = await _port.uninstall(device: targetDevice, package: package);
       switch (result) {
         case CommandSuccess(:final stdoutText):
           final message = stdoutText.isEmpty ? 'ok' : stdoutText;
@@ -178,24 +211,44 @@ final class InstallRecoveryService {
               normalized.contains('not installed')) {
             stdout.writeln('  • ${package.id} (${package.role}): 既に未インストールです');
           } else {
+            hasNonIgnorableFailure = true;
             stderr.writeln('  • ${package.id} (${package.role}): $message');
           }
       }
     }
 
     stdout.writeln('🧹 未完了 install session を確認します...');
-    final sessions = await _port.listSessions();
-    if (sessions.isEmpty) {
-      stdout.writeln('  • abandon 対象セッションはありません');
-    } else {
-      for (final session in sessions) {
-        final result = await _port.abandonSession(session);
-        if (result.isSuccess) {
-          stdout.writeln('  • abandoned session ${session.id}');
+    final sessionsResult = await _port.listSessions(device: targetDevice);
+    switch (sessionsResult) {
+      case CommandSuccess(:final stdoutText):
+        final sessions = _parseSessions(stdoutText);
+        if (sessions.isEmpty) {
+          stdout.writeln('  • abandon 対象セッションはありません');
         } else {
-          stderr.writeln('  • failed session ${session.id}: ${session.rawLine}');
+          for (final session in sessions) {
+            final result = await _port.abandonSession(
+              device: targetDevice,
+              session: session,
+            );
+            if (result.isSuccess) {
+              stdout.writeln('  • abandoned session ${session.id}');
+            } else {
+              hasNonIgnorableFailure = true;
+              stderr.writeln('  • failed session ${session.id}: ${session.rawLine}');
+            }
+          }
         }
-      }
+      case CommandFailure(:final stdoutText, :final stderrText):
+        hasNonIgnorableFailure = true;
+        final message = [stdoutText, stderrText]
+            .where((part) => part.isNotEmpty)
+            .join(' | ');
+        stderr.writeln('  • install session 一覧取得に失敗: $message');
+    }
+
+    if (hasNonIgnorableFailure) {
+      stderr.writeln('\n⚠️ 一部の復旧処理が失敗しました。ログを確認して再実行してください。');
+      return 2;
     }
 
     stdout.writeln('\n✅ 復旧処理が完了しました。');
@@ -205,6 +258,45 @@ final class InstallRecoveryService {
     stdout.writeln('  flutter run');
 
     return 0;
+  }
+
+  DeviceSerial? _resolveTargetDevice(List<DeviceSerial> devices) {
+    if (devices.length == 1) {
+      return devices.single;
+    }
+
+    final preferredSerial = Platform.environment['ANDROID_SERIAL'];
+    if (preferredSerial == null || preferredSerial.trim().isEmpty) {
+      stderr.writeln('❌ 複数デバイス接続中です。`ANDROID_SERIAL` を指定してください。');
+      stderr.writeln('接続デバイス: ${devices.map((d) => d.value).join(', ')}');
+      return null;
+    }
+
+    final matched = devices.where((device) => device.value == preferredSerial).toList();
+    if (matched.isEmpty) {
+      stderr.writeln('❌ ANDROID_SERIAL=$preferredSerial は接続デバイスに存在しません。');
+      stderr.writeln('接続デバイス: ${devices.map((d) => d.value).join(', ')}');
+      return null;
+    }
+
+    return matched.single;
+  }
+
+  List<InstallSession> _parseSessions(String stdoutText) {
+    final sessions = <InstallSession>[];
+    final regex = RegExp(r'sessionId=(\d+)');
+    for (final line in LineSplitter.split(stdoutText)) {
+      final match = regex.firstMatch(line);
+      if (match == null) {
+        continue;
+      }
+      final id = int.tryParse(match.group(1) ?? '');
+      if (id == null) {
+        continue;
+      }
+      sessions.add(InstallSession(id, line.trim()));
+    }
+    return sessions;
   }
 }
 
