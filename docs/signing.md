@@ -50,8 +50,13 @@ keystore.
    `--build-number` overrides the `+N` suffix in `pubspec.yaml:version`, so the
    `versionCode` always moves forward with commits.
 
-Without `key.properties`, release builds use debug signing unless
-`REQUIRE_RELEASE_KEYSTORE=true` is set.
+Without `key.properties`, release builds explicitly use the debug signing
+config unless `REQUIRE_RELEASE_KEYSTORE=true` is set.
+
+If you saw `INSTALL_PARSE_FAILED_NO_CERTIFICATES`, it means the APK was
+unsigned/corrupted at install time. The current `build.gradle` now forces
+release builds to always be signed (release key if present, otherwise debug key)
+to avoid generating a non-installable unsigned release APK.
 
 ### Recommended CI policy
 
@@ -70,6 +75,31 @@ keytool -genkey -v \
 Save the passwords and upload a base64 of the `.keystore` to the
 `KEYSTORE_BASE64` GitHub secret together with `KEY_ALIAS`, `KEY_PASSWORD`, and
 `STORE_PASSWORD`.
+
+
+## Installation recovery script (ADB)
+
+If Android keeps showing **"App not installed"** even after uninstalling, run:
+
+```
+dart run scripts/android_install_recovery.dart
+```
+
+What this script does:
+
+- Verifies `adb` and connected devices
+- Uninstalls both package IDs used in this repo
+  - `com.nolumia.rewardpoints` (release)
+  - `com.nolumia.rewardpoints.debug` (debug)
+- Abandons stale package installer sessions (`pm install-abandon`)
+
+Then run:
+
+```
+flutter clean
+flutter pub get
+flutter run
+```
 
 ## Uninstall-first scenarios
 
