@@ -139,9 +139,20 @@ Future<void> setupServiceLocator() async {
   sl.registerSingleton<PointEntryRepository>(
     SqlitePointEntryRepository(pointEntryDao),
   );
+  final exportArtifactStore = LoggedExportArtifactStore(
+    FileSystemExportArtifactStore(),
+    sl<AppLogger>(),
+  );
+  final exportShareGateway = LoggedExportShareGateway(
+    SharePlusExportShareGateway(),
+    sl<AppLogger>(),
+  );
   sl.registerSingleton<ExportFileWriter>(
     LoggedExportFileWriter(
-      PlatformExportFileWriter(),
+      PlatformExportFileWriter(
+        artifactStore: exportArtifactStore,
+        shareGateway: exportShareGateway,
+      ),
       sl<AppLogger>(),
     ),
   );
