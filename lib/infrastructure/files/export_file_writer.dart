@@ -22,11 +22,9 @@ final class PlatformExportFileWriter implements ExportFileWriter {
     final file = File('${directory.path}/$suggestedFileName');
     await file.writeAsString(json, encoding: utf8, flush: true);
 
-    final result = await SharePlus.instance.share(
-      ShareParams(
-        files: [XFile(file.path, mimeType: 'application/json')],
-        fileNameOverrides: [suggestedFileName],
-      ),
+    final result = await Share.shareXFiles(
+      [XFile(file.path, mimeType: 'application/json')],
+      fileNameOverrides: [suggestedFileName],
     );
 
     return result.status.name;
