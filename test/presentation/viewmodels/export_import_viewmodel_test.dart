@@ -84,21 +84,21 @@ class _FakePointRepo implements PointEntryRepository {
 class _CapturingWriter implements ExportFileWriter {
   String? lastSuggestedName;
   String? lastJson;
-  String locationToReturn = 'content://downloads/point_data_20260420_1111.json';
+  String resultToReturn = 'success';
 
   @override
-  Future<String> saveJson({
+  Future<String> shareJson({
     required String suggestedFileName,
     required String json,
   }) async {
     lastSuggestedName = suggestedFileName;
     lastJson = json;
-    return locationToReturn;
+    return resultToReturn;
   }
 }
 
 void main() {
-  test('export stores public location returned from writer', () async {
+  test('export stores share result returned from writer', () async {
     final user = User(
       id: const UserId(1),
       name: 'Alice',
@@ -121,7 +121,7 @@ void main() {
     await vm.exportData();
 
     expect(vm.state, ExportImportState.success);
-    expect(vm.lastMessage, writer.locationToReturn);
+    expect(vm.lastMessage, writer.resultToReturn);
     expect(writer.lastSuggestedName, startsWith('point_data_'));
     expect(writer.lastJson, contains('"users"'));
     expect(writer.lastJson, contains('"entries"'));
