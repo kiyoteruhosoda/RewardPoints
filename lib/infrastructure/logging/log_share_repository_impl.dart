@@ -15,12 +15,10 @@ final class LogShareUnavailableException implements Exception {
 final class PlatformLogShareRepository implements LogShareRepository {
   @override
   Future<String> share({required String filePath}) async {
-    final result = await SharePlus.instance.share(
-      ShareParams(
-        files: [XFile(filePath, mimeType: 'text/plain')],
-        subject: 'PointBook Logs',
-        text: 'PointBook application logs',
-      ),
+    final result = await Share.shareXFiles(
+      [XFile(filePath, mimeType: 'text/plain')],
+      subject: 'PointBook Logs',
+      text: 'PointBook application logs',
     );
 
     if (result.status == ShareResultStatus.unavailable) {
