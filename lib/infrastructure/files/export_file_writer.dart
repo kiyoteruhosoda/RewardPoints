@@ -158,10 +158,13 @@ final class LoggedExportShareGateway implements ExportShareGateway {
 final class SharePlusExportShareGateway implements ExportShareGateway {
   @override
   Future<String> share(ExportStoredFile file) async {
-    final result = await Share.shareXFiles(
-      [XFile(file.file.path, mimeType: 'application/json')],
-      subject: 'RewardPoints Export',
-      text: 'RewardPoints data export JSON',
+    final result = await SharePlus.instance.share(
+      ShareParams(
+        files: [XFile(file.file.path, mimeType: 'application/json')],
+        fileNameOverrides: [file.suggestedFileName],
+        subject: 'RewardPoints Export',
+        text: 'RewardPoints data export JSON',
+      ),
     );
 
     if (result.status == ShareResultStatus.unavailable) {
