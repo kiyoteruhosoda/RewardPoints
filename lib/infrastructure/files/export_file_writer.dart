@@ -1,52 +1,34 @@
 import 'dart:convert';
-import 'dart:typed_data';
+import 'dart:io';
 
-import 'package:file_saver/file_saver.dart';
-import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart';
-import 'package:path/path.dart' as p;
+import 'package:cross_file/cross_file.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 
 abstract interface class ExportFileWriter {
-  Future<String> saveJson({
+  Future<String> shareJson({
     required String suggestedFileName,
     required String json,
   });
 }
 
 final class PlatformExportFileWriter implements ExportFileWriter {
-  static const MethodChannel _channel = MethodChannel('rewardpoints/export_file');
-
   @override
-  Future<String> saveJson({
+  Future<String> shareJson({
     required String suggestedFileName,
     required String json,
   }) async {
-    final bytes = Uint8List.fromList(utf8.encode(json));
+    final directory = await getTemporaryDirectory();
+    final file = File('${directory.path}/$suggestedFileName');
+    await file.writeAsString(json, encoding: utf8, flush: true);
 
-    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
-      final savedUri = await _channel.invokeMethod<String>(
-        'saveJsonToDownloads',
-        {
-          'fileName': suggestedFileName,
-          'bytes': bytes,
-        },
-      );
-      if (savedUri == null || savedUri.isEmpty) {
-        throw PlatformException(
-          code: 'save_failed',
-          message: 'Failed to save file to Downloads.',
-        );
-      }
-      return savedUri;
-    }
-
-    final name = p.basenameWithoutExtension(suggestedFileName);
-    await FileSaver.instance.saveFile(
-      name: name,
-      bytes: bytes,
-      fileExtension: 'json',
-      customMimeType: 'application/json',
+    final result = await SharePlus.instance.share(
+      ShareParams(
+        files: [XFile(file.path, mimeType: 'application/json')],
+        fileNameOverrides: [suggestedFileName],
+      ),
     );
-    return suggestedFileName;
+
+    return result.status.name;
   }
 }

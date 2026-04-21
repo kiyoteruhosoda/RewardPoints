@@ -27,14 +27,14 @@ final class ExportImportViewModel extends ChangeNotifier {
     notifyListeners();
     try {
       final result = await _export.execute();
-      final savedLocation = await _fileWriter.saveJson(
+      final shareResult = await _fileWriter.shareJson(
         suggestedFileName: result.suggestedFileName,
         json: result.json,
       );
-      _lastMessage = savedLocation;
+      _lastMessage = shareResult;
       _state = ExportImportState.success;
     } catch (e, st) {
-      _error = UnexpectedError('Export failed', cause: e, stackTrace: st);
+      _error = UnexpectedError('Share failed', cause: e, stackTrace: st);
       _state = ExportImportState.error;
     } finally {
       notifyListeners();

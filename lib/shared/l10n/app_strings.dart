@@ -121,7 +121,7 @@ class AppStrings {
   static const String logsClearConfirmBody =
       'Delete all log entries from memory?';
   static const String logsClearSuccess = 'Logs cleared';
-  static const String logsDownload = 'Export';
+  static const String logsDownload = 'Share';
   static const String logsDownloadSuccess = 'Logs saved to file';
   static const String logsDownloadError = 'Failed to save logs';
   static const String logsEmpty = 'No log entries';
@@ -196,15 +196,14 @@ class AppStrings {
 
   // ─── Data export/import ───────────────────────────────────────────────
   static const String dataTitle = 'Data';
-  static const String dataExportTitle = 'Export';
+  static const String dataExportTitle = 'Share';
   static const String dataExportDesc =
-      'Export all users and point history as a JSON file. '
-      'On Android, it is saved to the public Downloads folder so it can be shared from other apps.';
-  static const String dataExportButton = 'Export JSON';
-  static const String dataExportSuccess = 'Export ready';
+      'Create a JSON file with all users and point history, then share it to other apps.';
+  static const String dataExportButton = 'Share JSON';
+  static const String dataExportSuccess = 'Shared';
   static const String dataImportTitle = 'Import';
   static const String dataImportDesc =
-      'Pick a previously exported JSON file to restore the data. '
+      'Pick a previously shared/exported JSON file to restore the data. '
       'This replaces existing users and history.';
   static const String dataImportButton = 'Pick JSON File';
   static const String dataImportSuccess = 'Import successful';
