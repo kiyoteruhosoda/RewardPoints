@@ -99,8 +99,8 @@ android {
             signingConfig = hasKeystore ? signingConfigs.release : signingConfigs.debug
             // Temporary mitigation for FileProvider/XML parser runtime mismatch
             // seen only on obfuscated release binaries.
-            minifyEnabled false
-            shrinkResources false
+            minifyEnabled true
+            shrinkResources true
             proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
         }
     }
