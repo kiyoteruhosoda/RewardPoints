@@ -79,7 +79,7 @@ android {
 
     defaultConfig {
         applicationId = "com.nolumia.rewardpoints.app"
-        minSdk = flutter.minSdkVersion
+        minSdk = 36 // Android 16
         targetSdk = flutter.targetSdkVersion
         versionCode = flutterVersionCode.toInteger()
         versionName = flutterVersionName

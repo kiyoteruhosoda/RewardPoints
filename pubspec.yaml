@@ -73,7 +73,6 @@ flutter:
           weight: 700
 
 # Run: dart run flutter_launcher_icons
-# Android 8+ uses the vector drawable in mipmap-anydpi-v26/ directly.
 flutter_launcher_icons:
   android: "ic_launcher"
   image_path: "assets/icon/app_icon.png"
@@ -81,4 +80,4 @@ flutter_launcher_icons:
   adaptive_icon_background: "#2060C0"
   adaptive_icon_foreground: "assets/icon/app_icon.png"
   adaptive_icon_monochrome: "assets/icon/app_icon.png"
-  min_sdk_android: 21
+  min_sdk_android: 36
