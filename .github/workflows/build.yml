@@ -15,7 +15,12 @@ env:
 
 jobs:
   start-runner:
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    # ⚠ **fork の PR からは起こさない。** `workflow_run` は fork 由来の実行でも
+    #   **ベースのリポジトリの秘密を持って**走る。ここで起こすのは Azure の
+    #   使い捨てランナー（ACI）で、起動・停止の口は `FUNC_*` の秘密そのもの
+    #   ——誰でも出せる PR にそれを渡さない。
+    if: ${{ github.event.workflow_run.conclusion == 'success'
+         && github.event.workflow_run.head_repository.full_name == github.repository }}
     runs-on: ubuntu-latest
     steps:
       - name: Validate required secrets
